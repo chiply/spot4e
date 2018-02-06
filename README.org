@@ -1,0 +1,110 @@
+* spot4e
+An emacs helm interface for searching Spotify and controlling
+playback (on premium).
+
+Of note, spot4e controls Spotify via the Spotify API, not
+dbus.  This means you can control Spotify _playback_ on whichever
+device Spotify is currently active.  For example, you can control
+Spotify playback on your iPhone or Google Home if you wish.  You do
+not have to have Spotify open on the computer running emacs.
+
+This feature also means that spot4e should work as-is on most
+operating systems.
+
+* Installation
+** Dependencies
+spot4e depends upon lisp packages json, url, and helm to function properly.
+
+Also, this app is NOT a backdoor to Spotify.  You need to have a
+premium account to use playback features!
+
+** Installation instructions
+This package is not yet on MELPA.
+
+To install, simply download the spot4e.el file and install however you
+like.
+
+For example, clone the project to whichever location you prefer, and
+add the directory to your load path:
+
+#+BEGIN_SRC emacs-lisp
+(add-to-list 'load-path "/path/to/spot4e")
+#+END_SRC
+
+** Initial setup
+Because spot4e controls a given user's Spotify playback, it requires
+each user allow spot4e to access user data.  Each user must authorize
+spot4e through Spotify's [[https://developer.spotify.com/web-api/authorization-guide/#authorization_code_flow][Authorization Code Flow]], so there is some
+setup required:
+
+*** Step 1:
+To credential the app, run the interactive function spot4e-authorize:
+
+M-x spot4e-authorize
+
+This will open a login page in your browser.  
+
+*** Step 2 
+Log in (or click ok if you are already logged in).  You will be
+redirected to Spotify's home page, where the URL contains your
+authorization code:
+
+https://www.spotify.com/us/?code=AUTH_CODE_HERE
+
+*** Step 3
+Copy the this code and paste into the emacs minibuffer prompt "Enter code
+from URL" and press enter
+
+*** Step 4
+This authorization process has given you a refresh token, stored in
+spot4e-refresh-token, which you will want to save for future sessions.
+
+I recommend storing this token in your emacs config file:
+
+#+BEGIN_SRC emacs-lisp
+(setq spot4e-refresh-token "REFRESH_TOKEN_HERE")
+#+END_SRC
+
+Note: you can get your refresh token by simply typing
+spot4e-refresh-token into any buffer, placing your cursor immediately
+after the variable, and pressing C-u C-x C-e.  This evaluates the
+variable and prints the output at point. 
+
+*** Step 5
+This refresh token does not expire and will be good for future
+sessions.  The access-token, however, does expire every hour, so I
+recommend refreshing it periodically with the spot4e-refresh function.
+I recommend adding the following to your config file as well:
+
+#+BEGIN_SRC emacs-lisp
+(run-with-timer 0 (* 60 59) 'spot4e-refresh)
+#+END_SRC
+
+* Usage
+To start the helm interface to Spotify:
+
+M-x spot4e-search-tracks
+
+and begin searching for tracks.
+
+Of note, this interfaces with the tracks search endpoint which allows
+you to search for tracks by artist, album, and track name.
+
+Once the items appear, you can go to next an previous with either the
+C-n and C-p commands, respectively or the <down> and <up> keys,
+respectively.
+
+To play a track, simply press Enter.  By default, the track plays in
+the context of the album in which it appears, otherwise playback stops
+after the song is finished.
+
+To reiterate from the summary, spot4e controls user's Spotify _playback_
+through the Spotify API.  You must have an active Spotify session for
+spot4e to trigger playback on the respective device.
+* Credits
+This package was primarily inspired by Kris Jenkins's [[https://github.com/krisajenkins/helm-spotify/blob/master/README.org][helm-spotify]],
+with the main differences being support for authentication and control
+of playback on third-party devices.  
+
+Credit is also due to the developers of the Spotify API, whose
+excellent design made the development of this app straightforward. 
