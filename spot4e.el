@@ -3,7 +3,7 @@
 ;;
 ;; Author: Charlie Baker <mister.chiply@gmail.com>
 ;; Maintainer: Charlie Baker <mister.chiply@gmail.
-;; URL: *** 
+;; URL: https://github.com/chiply/spot4e
 ;; Version: 0.0.1
 ;; Package-Requires: helm, json, url
 
