@@ -85,6 +85,7 @@
     (goto-char (+ 1 url-http-end-of-headers))
     (json-read-object)))
 
+
 (defun spot4e-search-json-results (type q)
   "Return json results from track search with q=Q."
   (let ((url-request-method "GET")
@@ -115,7 +116,7 @@
     (concat track-name "\n"
 	    artist-name "  |||  " album-name)))
 
-;;;###autoload
+
 (defun spot4e-tracks-candidates ()
   "Return name of the track (car) with track metadata (cdr)."
   (mapcar
@@ -124,7 +125,7 @@
 	      (alist-get 'tracks
 			 (spot4e-search-json-results "track" helm-pattern)))))
 
-;;;###autoload
+
 (defun spot4e-search-tracks ()
   "Fucntion to search via helm interface for spotify tracks matching SEARCH-QUERY."
   (interactive)
