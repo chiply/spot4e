@@ -25,7 +25,8 @@ To install, simply download the spot4e.el file and install however you
 like.
 
 For example, clone the project to whichever location you prefer, and
-add the directory to your load path:
+add the directory to your load path.  I recommend placing the
+following to your init file:
 
 #+BEGIN_SRC emacs-lisp
 (add-to-list 'load-path "/path/to/spot4e")
