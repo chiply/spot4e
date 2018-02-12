@@ -87,7 +87,7 @@
 
 
 (defun spot4e-search-json-results (type q)
-  "Return json results from track search with q=Q."
+  "Return json results from TYPE search for Q (query)."
   (let ((url-request-method "GET")
 	(q-params (concat "?q=" q
 			  "&type=" type
