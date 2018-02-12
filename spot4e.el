@@ -134,6 +134,40 @@
   (message spot4e-currently-playing))
 
 
+(defun spot4e-player-do-action (method action)
+  "Via the METHOD spoecified, send ACTION to player endpoint."
+  (interactive)
+  (let ((url-request-method method)
+	(url-request-extra-headers
+	 `(("Authorization" . ,(concat "Bearer " spot4e-access-token)))))
+    (url-retrieve-synchronously (concat spot4e-player-url action)))
+  (spot4e-message-currently-playing))
+
+
+(defun spot4e-player-play ()
+  "Press play on Spotify active device."
+  (interactive)
+  (spot4e-player-do-action "PUT" "/play"))
+
+
+(defun spot4e-player-pause ()
+  "Press pause on Spotify active device."
+  (interactive)
+  (spot4e-player-do-action "PUT" "/pause"))
+
+
+(defun spot4e-player-next ()
+  "Press next on Spotify active device."
+  (interactive)
+  (spot4e-player-do-action "POST" "/next"))
+
+
+(defun spot4e-player-previous ()
+  "Press previous on Spotify active device."
+  (interactive)
+  (spot4e-player-do-action "POST" "/previous"))
+
+
 (defun spot4e-play-track (track)
   "Play TRACK in context of the album the TRACK appears on."
   (let ((url-request-method "PUT")
@@ -144,7 +178,8 @@
 		 (alist-get 'uri (alist-get 'album track)) ;album uri
 		 (alist-get 'uri track)))) ;track uri
     (url-retrieve-synchronously spot4e-player-play-url))
-  (message "Enjoy the music ;-)"))
+  (spot4e-message-currently-playing))
+
 
 (defun spot4e-format-track-for-helm-buffer-display (track)
   "Formats TRACK for display in helm buffer."
