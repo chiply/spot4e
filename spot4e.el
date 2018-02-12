@@ -36,11 +36,24 @@
        "https://accounts.spotify.com/en/authorize"
        "?response_type=code&client_id=" spot4e-client-id
        "&redirect_uri=" spot4e-redirect-uri
-       "&scope=" "streaming%20user-read-birthdate%20user-read-email%20user-read-private"
+       "&scope=" (concat "streaming "
+			 "user-read-birthdate "
+			 "user-read-email "
+			 "user-read-private "
+			 "user-read-playback-state ")
        "&show_dialog=" "true"))
 (defvar spot4e-token-url "https://accounts.spotify.com/api/token")
 (defvar spot4e-search-url "https://api.spotify.com/v1/search")
-(defvar spot4e-player-play-url "https://api.spotify.com/v1/me/player/play")
+
+;; there are synchronicity issues when displaying currently-playing
+;; after doing player action (i.e. next, previous), even when using
+;; spot4e-message-currently-playing as a callback funtion, so for now
+;; force sleep time between changing track and calling
+;; spot4e-message-currently-playing to resolve this issue.
+(defvar spot4e-wait-time 0.2)
+(defvar spot4e-player-url "https://api.spotify.com/v1/me/player")
+(defvar spot4e-player-play-url (concat spot4e-player-url "/play"))
+(defvar spot4e-currently-playing-url (concat spot4e-player-url "/currently-playing"))
 
 
 (defun spot4e-authorize ()
@@ -96,6 +109,31 @@
     (spot4e-retrieve-url-to-alist-synchronously (concat spot4e-search-url q-params))))
 
 
+(defun spot4e-get-currently-playing-context ()
+  "Return json results from track search with q=Q."
+  (let ((url-request-method "GET")
+	(q-params (concat  "?access_token=" spot4e-access-token)))
+    (setq spot4e-currently-playing-context-alist
+	  (spot4e-retrieve-url-to-alist-synchronously (concat spot4e-currently-playing-url
+							      q-params)))))
+
+
+(defun spot4e-set-currently-playing ()
+  "Set track, artist, album name for current track and store in spot4e-currently-playing."
+  (interactive)
+  (setq spot4e-currently-playing
+	(spot4e-format-track-for-mini-buffer-display
+	 (alist-get 'item (spot4e-get-currently-playing-context)))))
+
+
+(defun spot4e-message-currently-playing ()
+  "Message track, artist, album name for current track and display in minibuffer."
+  (interactive)
+  (sleep-for spot4e-wait-time)
+  (spot4e-set-currently-playing)
+  (message spot4e-currently-playing))
+
+
 (defun spot4e-play-track (track)
   "Play TRACK in context of the album the TRACK appears on."
   (let ((url-request-method "PUT")
@@ -108,7 +146,7 @@
     (url-retrieve-synchronously spot4e-player-play-url))
   (message "Enjoy the music ;-)"))
 
-(defun spot4e-format-track-for-display (track)
+(defun spot4e-format-track-for-helm-buffer-display (track)
   "Formats TRACK for display in helm buffer."
   (let ((track-name (alist-get 'name track))
 	(artist-name (alist-get 'name (elt (alist-get 'artists track) 0)))
@@ -117,10 +155,19 @@
 	    artist-name "  |||  " album-name)))
 
 
+(defun spot4e-format-track-for-mini-buffer-display (track)
+  "Formats TRACK for display in mini buffer."
+  (let ((track-name (alist-get 'name track))
+	(artist-name (alist-get 'name (elt (alist-get 'artists track) 0)))
+	(album-name (alist-get 'name (alist-get 'album track))))
+    (concat track-name " --- "
+	    artist-name "  |||  " album-name)))
+
+
 (defun spot4e-tracks-candidates ()
   "Return name of the track (car) with track metadata (cdr)."
   (mapcar
-   (lambda (track) (cons (spot4e-format-track-for-display track) track))
+   (lambda (track) (cons (spot4e-format-track-for-helm-buffer-display track) track))
    (alist-get 'items
 	      (alist-get 'tracks
 			 (spot4e-search-json-results "track" helm-pattern)))))
