@@ -218,5 +218,6 @@
 	      :volatile t
 	      :multiline t)))
 
+
 (provide 'spot4e)
 ;;; spot4e.el ends here
