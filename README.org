@@ -102,6 +102,15 @@ after the song is finished.
 To reiterate from the summary, spot4e controls user's Spotify _playback_
 through the Spotify API.  You must have an active Spotify session for
 spot4e to trigger playback on the respective device.
+
+Playback control:
+
+| spot4e-message-currently-playing | message current track in minibuffer |
+| spot4e-player-play               | send play to Spotify playback       |
+| spot4e-player-pause              | send pause to Spotify playback      |
+| spot4e-player-next               | send next to Spotify playback       |
+| spot4e-player-previous           | send previous to Spotify playback   |
+
 * Credits
 This package was primarily inspired by Kris Jenkins's [[https://github.com/krisajenkins/helm-spotify/blob/master/README.org][helm-spotify]],
 with the main differences being support for authentication and control
