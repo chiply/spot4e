@@ -93,10 +93,10 @@
 
 (defun spot4e-retrieve-url-to-alist-synchronously (url)
   "Return alist representation of json response from URL."
-  (with-current-buffer
-      (url-retrieve-synchronously url)
-    (goto-char (+ 1 url-http-end-of-headers))
-    (json-read-object)))
+  (with-current-buffer (url-retrieve-synchronously url)
+    (json-read-from-string
+     (decode-coding-region (+ 1 url-http-end-of-headers)
+                           (point-max) 'utf-8 t))))
 
 
 (defun spot4e-search-json-results (type q)
