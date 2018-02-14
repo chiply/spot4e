@@ -99,7 +99,7 @@
                            (point-max) 'utf-8 t))))
 
 
-(defun spot4e-search-json-results (type q)
+(defun spot4e-get-track-search-results-alist (type q)
   "Return json results from TYPE search for Q (query)."
   (let ((url-request-method "GET")
 	(q-params (concat "?q=" q
