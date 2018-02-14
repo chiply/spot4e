@@ -50,7 +50,7 @@
 ;; spot4e-message-currently-playing as a callback funtion, so for now
 ;; force sleep time between changing track and calling
 ;; spot4e-message-currently-playing to resolve this issue.
-(defvar spot4e-wait-time 0.2)
+(defvar spot4e-wait-time 0.4)
 (defvar spot4e-player-url "https://api.spotify.com/v1/me/player")
 (defvar spot4e-player-play-url (concat spot4e-player-url "/play"))
 (defvar spot4e-currently-playing-url (concat spot4e-player-url "/currently-playing"))
