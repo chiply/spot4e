@@ -181,6 +181,15 @@
   (spot4e-message-currently-playing))
 
 
+(defun spot4e-helm (spot4e-helm-source-name spot4e-helm-source-candidates spot4e-helm-actions)
+  (helm
+   :sources (helm-build-sync-source spot4e-helm-source-name
+	      :candidates spot4e-helm-source-candidates
+	      :action spot4e-helm-actions
+	      :volatile t
+	      :multiline t)))
+
+
 (defun spot4e-format-track-for-helm-buffer-display (track)
   "Formats TRACK for display in helm buffer."
   (let ((track-name (alist-get 'name track))
@@ -212,12 +221,10 @@
 (defun spot4e-helm-search-tracks ()
   "Fucntion to search via helm interface for spotify tracks matching user-input."
   (interactive)
-  (helm
-   :sources (helm-build-sync-source "spot4e-tracks-candidates"
-	      :candidates 'spot4e-tracks-candidates
-	      :action '(("Play track" . spot4e-play-track))
-	      :volatile t
-	      :multiline t)))
+  (spot4e-helm "spot4e-tracks-candidates" 'spot4e-tracks-candidates
+	       '(("Play track" . spot4e-play-track))))
+
+
 
 
 (provide 'spot4e)
