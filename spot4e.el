@@ -54,6 +54,8 @@
 (defvar spot4e-player-url "https://api.spotify.com/v1/me/player")
 (defvar spot4e-player-play-url (concat spot4e-player-url "/play"))
 (defvar spot4e-currently-playing-url (concat spot4e-player-url "/currently-playing"))
+(defvar spot4e-categories-url "https://api.spotify.com/v1/browse/categories")
+(defvar spot4e-playlist-url "https://api.spotify.com/v1/users/spotify/playlists")
 
 
 (defun spot4e-authorize ()
@@ -225,6 +227,118 @@
 	       '(("Play track" . spot4e-play-track))))
 
 
+(defun spot4e-get-categories-alist ()
+  "Get list of spotofy categories."
+  (let ((url-request-method "GET")
+	(q-params (concat  "?access_token=" spot4e-access-token)))
+    (setq spot4e-categories-list
+	  (spot4e-retrieve-url-to-alist-synchronously (concat spot4e-categories-url
+							      q-params)))))
+
+
+(defun spot4e-format-category-for-helm-buffer-display (spot4e-category-alist)
+  "Get category name from SPOT4E-CATEGORY-ALIST and format for helm buffer display."
+  (alist-get 'name spot4e-category-alist))
+
+
+(defun spot4e-categories-candidates ()
+  "Return name of the category (car) with category metadata (cdr)."
+  (mapcar
+   (lambda (category) (cons (spot4e-format-category-for-helm-buffer-display category) category))
+   (alist-get 'items
+	      (alist-get 'categories
+			 (spot4e-get-categories-alist)))))
+
+
+(defun spot4e-helm-search-categories ()
+  "Display list of spotify categories in helm buffer for interaction."
+  (interactive)
+  (spot4e-helm "spot4e-categories-candidates" 'spot4e-categories-candidates
+	       '(("Display Category Playlists" . spot4e-helm-search-category-playlists))))
+
+
+(defun spot4e-get-category-playlists-alist (spot4e-category-id)
+  "Get alist of playlists for a give SPOT4E-CATEGORY-ID."
+  (let ((url-request-method "GET")
+	(q-params (concat "?access_token=" spot4e-access-token
+			  "&limit=" "50")))
+    (spot4e-retrieve-url-to-alist-synchronously (concat spot4e-categories-url
+							"/"
+							spot4e-category-id
+							"/playlists"
+							q-params))))
+
+
+(defun spot4e-format-playlist-for-helm-buffer-display (spot4e-playlist-alist)
+  "Get playlist name from SPOT4E-PLAYLIST-ALIST and format for helm buffer display."
+  (alist-get 'name playlist))
+
+
+(defun spot4e-category-playlist-candidates (spot4e-category-id)
+  "Return name of playlist (car) with playlist metadata (cdr) for a given SPOT4E-CATEGORY-ID."
+  (mapcar
+   (lambda (playlist) (cons (spot4e-format-playlist-for-helm-buffer-display playlist) playlist))
+   (alist-get 'items
+	      (alist-get 'playlists
+			 (spot4e-get-category-playlists-alist spot4e-category-id)))))
+
+
+(defun spot4e-helm-search-category-playlists (spot4e-category-alist)
+  "Display list of playlists for given SPOT4E-CATEGORY-ALIST in helm buffer for interaction."
+  (interactive)
+  (let ((spot4e-category-id (alist-get 'id spot4e-category-alist)))
+    (spot4e-helm "spot4e-category-playlists" (spot4e-category-playlist-candidates spot4e-category-id)
+		 '(("Display Playlist Tracks" . spot4e-helm-search-playlist-tracks)))))
+
+(defun spot4e-get-playlist-tracks-alist (spot4e-playlist-id)
+  "Return alist of tracks for a given SPOT4E-PLAYLIST-ID."
+  (let ((url-request-method "GET")
+	(q-params (concat "?access_token=" spot4e-access-token)))
+    (spot4e-retrieve-url-to-alist-synchronously (concat spot4e-playlist-url "/" spot4e-playlist-id q-params))))
+
+
+(defun spot4e-format-playlist-tracks-for-helm-buffer-display (playlist-track-alist)
+  "Format playlist's tracks in PLAYLIST-TRACK-ALIST for display in helm buffer."
+  (let ((track-name (alist-get 'name (alist-get 'track playlist-track-alist)))
+	(artist-name (alist-get 'name (elt (alist-get 'artists (alist-get 'track playlist-track-alist)) 0)))
+	(album-name (alist-get 'name (alist-get 'album (alist-get 'track playlist-track-alist)))))
+    (concat track-name " --- "
+	    artist-name "  |||  " album-name)))
+
+
+(defun spot4e-playlist-tracks-candidates (spot4e-playlist-id)
+  "Return playlist track name (car) with playlist track metadata (cdr) for a given SPOT4E-PLAYLIST-ID."
+  (mapcar
+   (lambda (playlist) (cons (spot4e-format-playlist-tracks-for-helm-buffer-display playlist) playlist))
+   (alist-get 'items
+	      (alist-get 'tracks
+			 (spot4e-get-playlist-tracks-alist spot4e-playlist-id)))))
+
+
+(defun spot4e-play-playlist-track (playlist-track-alist)
+  "Play track in context of the playlist the PLAYLIST-TRACK-ALIST appears on."
+  (let ((url-request-method "PUT")
+	(url-request-extra-headers
+	 `(("Authorization" . ,(concat "Bearer " spot4e-access-token))))
+	(url-request-data
+	 (format "{\"context_uri\":\"%s\", \"offset\":{\"uri\":\"%s\"}}"
+		 spot4e-playlist-uri
+		 (alist-get 'uri (alist-get 'track playlist-track-alist)))))
+    (url-retrieve-synchronously spot4e-player-play-url))
+  (spot4e-message-currently-playing))
+
+
+(defun spot4e-helm-search-playlist-tracks (spot4e-playlist-alist)
+  "Display list of tracks in a playlist, given by SPOT4E-PLAYLIST-ALIST, in helm buffer for interaction."
+  (interactive)
+  (let ((spot4e-playlist-id (alist-get 'id spot4e-playlist-alist))
+	(spot4e-user-id (alist-get 'id (alist-get 'owner spot4e-playlist-alist))))
+    (setq spot4e-playlist-uri (concat "spotify:user:"
+				      spot4e-user-id
+				      ":playlist:"
+				      spot4e-playlist-id))
+    (spot4e-helm "spot4e-playlist-tracks" (spot4e-playlist-tracks-candidates spot4e-playlist-id)
+		 '(("Play track" . spot4e-play-playlist-track)))))
 
 
 (provide 'spot4e)
