@@ -208,8 +208,9 @@
 			 (spot4e-get-track-search-results-alist "track" helm-pattern)))))
 
 
-(defun spot4e-search-tracks ()
-  "Fucntion to search via helm interface for spotify tracks matching SEARCH-QUERY."
+
+(defun spot4e-helm-search-tracks ()
+  "Fucntion to search via helm interface for spotify tracks matching user-input."
   (interactive)
   (helm
    :sources (helm-build-sync-source "spot4e-tracks-candidates"
