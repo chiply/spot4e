@@ -205,7 +205,7 @@
    (lambda (track) (cons (spot4e-format-track-for-helm-buffer-display track) track))
    (alist-get 'items
 	      (alist-get 'tracks
-			 (spot4e-search-json-results "track" helm-pattern)))))
+			 (spot4e-get-track-search-results-alist "track" helm-pattern)))))
 
 
 (defun spot4e-search-tracks ()
