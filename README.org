@@ -121,7 +121,9 @@ M-x spot4e-helm-search-categories
 
 And browse categories.  Press enter on a category to see that
 category's playlists.  Press enter on a playlist to see a category's
-tracks.  A crude model for this browse interface is:
+tracks.  Press enter on a track to play the track.
+
+A crude model for this browse interface is:
 
 category<-->playlist<-->track
 
