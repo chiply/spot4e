@@ -251,15 +251,10 @@
 		  t))
 
 
-(defun spot4e-format-category-for-helm-buffer-display (spot4e-category-alist)
-  "Get category name from SPOT4E-CATEGORY-ALIST and format for helm buffer display."
-  (alist-get 'name spot4e-category-alist))
-
-
 (defun spot4e-categories-candidates ()
   "Return name of the category (car) with category metadata (cdr)."
   (mapcar
-   (lambda (category) (cons (spot4e-format-category-for-helm-buffer-display category) category))
+   (lambda (category) (cons (alist-get 'name category) category))
    (alist-get 'items
 	      (alist-get 'categories
 			 (spot4e-get-categories-alist)))))
@@ -284,15 +279,10 @@
 		  t))
 
 
-(defun spot4e-format-playlist-for-helm-buffer-display (spot4e-playlist-alist)
-  "Get playlist name from SPOT4E-PLAYLIST-ALIST and format for helm buffer display."
-  (alist-get 'name playlist))
-
-
 (defun spot4e-category-playlist-candidates (spot4e-category-id)
   "Return name of playlist (car) with playlist metadata (cdr) for a given SPOT4E-CATEGORY-ID."
   (mapcar
-   (lambda (playlist) (cons (spot4e-format-playlist-for-helm-buffer-display playlist) playlist))
+   (lambda (playlist) (cons (alist-get 'name playlist) playlist))
    (alist-get 'items
 	      (alist-get 'playlists
 			 (spot4e-get-category-playlists-alist spot4e-category-id)))))
@@ -304,6 +294,7 @@
   (let ((spot4e-category-id (alist-get 'id spot4e-category-alist)))
     (spot4e-helm "spot4e-category-playlists" (spot4e-category-playlist-candidates spot4e-category-id)
 		 '(("Display Playlist Tracks" . spot4e-helm-search-playlist-tracks)))))
+
 
 (defun spot4e-get-playlist-tracks-alist (spot4e-playlist-id)
   "Return alist of tracks for a given SPOT4E-PLAYLIST-ID."
