@@ -58,41 +58,6 @@
 (defvar spot4e-playlist-url "https://api.spotify.com/v1/users/spotify/playlists")
 
 
-(defun spot4e-authorize ()
-  "Obtain access_ and refresh_ tokens for user account."
-  (interactive)
-  (browse-url spot4e-auth-url-full)
-  (setq spot4e-auth-code (read-string "Enter code from URL: "))
-  (let ((url-request-method "POST")
-	(url-request-extra-headers
-	 `(("Content-Type" . "application/x-www-form-urlencoded")
-	   ("Authorization" . ,(concat "Basic " spot4e-b64-id-secret))))
-	(q-params (concat "?grant_type=" "authorization_code"
-			  "&redirect_uri=" spot4e-redirect-uri
-			  "&code=" spot4e-auth-code)))
-    (setq spot4e-tokens-alist
-	  (spot4e-retrieve-url-to-alist-synchronously (concat spot4e-token-url q-params)))
-    (setq spot4e-access-token
-	  (alist-get 'access_token spot4e-tokens-alist))
-    (setq spot4e-refresh-token
-	  (alist-get 'refresh_token spot4e-tokens-alist))))
-
-
-(defun spot4e-refresh ()
-  "Obtain access_ and refresh_ tokens for user account."
-  (interactive)
-  (let ((url-request-method "POST")
-	(url-request-extra-headers
-	 `(("Content-Type" . "application/x-www-form-urlencoded")
-	   ("Authorization" . ,(concat "Basic " spot4e-b64-id-secret))))
-	(q-params (concat "?grant_type=" "refresh_token"
-			  "&refresh_token=" spot4e-refresh-token)))
-    (setq spot4e-refresh-alist
-	  (spot4e-retrieve-url-to-alist-synchronously (concat spot4e-token-url q-params)))
-    (setq spot4e-access-token
-	  (alist-get 'access_token spot4e-refresh-alist))))
-
-
 (defun spot4e-retrieve-url-to-alist-synchronously (url)
   "Return alist representation of json response from URL."
   (with-current-buffer (url-retrieve-synchronously url)
@@ -101,24 +66,75 @@
                            (point-max) 'utf-8 t))))
 
 
+(defun spot4e-request (spot4e-request-method spot4e-request-url &optional spot4e-request-q-params spot4e-request-parse-json spot4e-request-extra-headers spot4e-request-data)
+  "Function to handle spot4e requests."
+  (let ((url-request-method spot4e-request-method)
+	(url-request-data spot4e-request-data)
+	(url-request-extra-headers spot4e-request-extra-headers))
+    (if spot4e-request-parse-json
+	(spot4e-retrieve-url-to-alist-synchronously
+	 (concat spot4e-request-url spot4e-request-q-params))
+      (url-retrieve-synchronously
+       (concat spot4e-request-url spot4e-request-q-params)))))
+
+
+(defun spot4e-authorize ()
+  "Obtain access_ and refresh_ tokens for user account."
+  (interactive)
+  (browse-url spot4e-auth-url-full)
+  (setq spot4e-auth-code (read-string "Enter code from URL: "))
+  (setq spot4e-tokens-alist
+	(spot4e-request "POST"
+			spot4e-token-url
+			(concat "?grant_type=" "authorization_code"
+				"&redirect_uri=" spot4e-redirect-uri
+				"&code=" spot4e-auth-code)
+			t
+			`(("Content-Type" . "application/x-www-form-urlencoded")
+			  ("Authorization" . ,(concat "Basic " spot4e-b64-id-secret)))
+			nil
+			t))
+    (setq spot4e-access-token
+	  (alist-get 'access_token spot4e-tokens-alist))
+    (setq spot4e-refresh-token
+	  (alist-get 'refresh_token spot4e-tokens-alist)))
+
+
+(defun spot4e-refresh ()
+  "Obtain access_ and refresh_ tokens for user account."
+  (interactive)
+  (setq spot4e-refresh-alist
+	
+	(spot4e-request "POST"
+			spot4e-token-url
+			(concat "?grant_type=" "refresh_token"
+				"&refresh_token=" spot4e-refresh-token)
+			t
+			`(("Content-Type" . "application/x-www-form-urlencoded")
+			  ("Authorization" . ,(concat "Basic " spot4e-b64-id-secret)))
+			nil))
+    (setq spot4e-access-token
+	  (alist-get 'access_token spot4e-refresh-alist)))
+
+
 (defun spot4e-get-track-search-results-alist (type q)
   "Return json results from TYPE search for Q (query)."
-  (let ((url-request-method "GET")
-	(q-params (concat "?q=" q
+  (spot4e-request "GET"
+		  spot4e-search-url
+		  (concat "?q=" q
 			  "&type=" type
 			  "&limit=" "50"
-			  "&access_token=" spot4e-access-token)))
-    (spot4e-retrieve-url-to-alist-synchronously (concat spot4e-search-url q-params))))
+			  "&access_token=" spot4e-access-token)
+		  t))
 
 
 (defun spot4e-get-currently-playing-context ()
   "Return json results from track search with q=Q."
-  (let ((url-request-method "GET")
-	(q-params (concat  "?access_token=" spot4e-access-token)))
-    (setq spot4e-currently-playing-context-alist
-	  (spot4e-retrieve-url-to-alist-synchronously (concat spot4e-currently-playing-url
-							      q-params)))))
-
+  (setq spot4e-currently-playing-context-alist
+	(spot4e-request "GET"
+			spot4e-currently-playing-url
+			(concat  "?access_token=" spot4e-access-token)
+			t)))
 
 (defun spot4e-set-currently-playing ()
   "Set track, artist, album name for current track and store in spot4e-currently-playing."
@@ -139,10 +155,10 @@
 (defun spot4e-player-do-action (method action)
   "Via the METHOD spoecified, send ACTION to player endpoint."
   (interactive)
-  (let ((url-request-method method)
-	(url-request-extra-headers
-	 `(("Authorization" . ,(concat "Bearer " spot4e-access-token)))))
-    (url-retrieve-synchronously (concat spot4e-player-url action)))
+  
+  (spot4e-request method
+		  (concat spot4e-player-url action)
+		  (concat  "?access_token=" spot4e-access-token))
   (spot4e-message-currently-playing))
 
 
@@ -172,14 +188,14 @@
 
 (defun spot4e-play-track (track)
   "Play TRACK in context of the album the TRACK appears on."
-  (let ((url-request-method "PUT")
-	(url-request-extra-headers
-	 `(("Authorization" . ,(concat "Bearer " spot4e-access-token))))
-	(url-request-data
-	 (format "{\"context_uri\":\"%s\", \"offset\":{\"uri\":\"%s\"}}"
-		 (alist-get 'uri (alist-get 'album track)) ;album uri
-		 (alist-get 'uri track)))) ;track uri
-    (url-retrieve-synchronously spot4e-player-play-url))
+  (spot4e-request "PUT"
+		  spot4e-player-play-url
+		  (concat "?access_token=" spot4e-access-token)
+		  nil
+		  nil
+		  (format "{\"context_uri\":\"%s\", \"offset\":{\"uri\":\"%s\"}}"
+			  (alist-get 'uri (alist-get 'album track))
+			  (alist-get 'uri track)))
   (spot4e-message-currently-playing))
 
 
@@ -229,11 +245,10 @@
 
 (defun spot4e-get-categories-alist ()
   "Get list of spotofy categories."
-  (let ((url-request-method "GET")
-	(q-params (concat  "?access_token=" spot4e-access-token)))
-    (setq spot4e-categories-list
-	  (spot4e-retrieve-url-to-alist-synchronously (concat spot4e-categories-url
-							      q-params)))))
+  (spot4e-request "GET"
+		  spot4e-categories-url
+		  (concat  "?access_token=" spot4e-access-token)
+		  t))
 
 
 (defun spot4e-format-category-for-helm-buffer-display (spot4e-category-alist)
@@ -259,14 +274,14 @@
 
 (defun spot4e-get-category-playlists-alist (spot4e-category-id)
   "Get alist of playlists for a give SPOT4E-CATEGORY-ID."
-  (let ((url-request-method "GET")
-	(q-params (concat "?access_token=" spot4e-access-token
-			  "&limit=" "50")))
-    (spot4e-retrieve-url-to-alist-synchronously (concat spot4e-categories-url
-							"/"
-							spot4e-category-id
-							"/playlists"
-							q-params))))
+  (spot4e-request "GET"
+		  (concat spot4e-categories-url
+			  "/"
+			  spot4e-category-id
+			  "/playlists")
+		  (concat "?access_token=" spot4e-access-token
+			  "&limit=" "50")
+		  t))
 
 
 (defun spot4e-format-playlist-for-helm-buffer-display (spot4e-playlist-alist)
@@ -292,9 +307,10 @@
 
 (defun spot4e-get-playlist-tracks-alist (spot4e-playlist-id)
   "Return alist of tracks for a given SPOT4E-PLAYLIST-ID."
-  (let ((url-request-method "GET")
-	(q-params (concat "?access_token=" spot4e-access-token)))
-    (spot4e-retrieve-url-to-alist-synchronously (concat spot4e-playlist-url "/" spot4e-playlist-id q-params))))
+  (spot4e-request "GET"
+		  (concat spot4e-playlist-url "/" spot4e-playlist-id)
+		  (concat "?access_token=" spot4e-access-token)
+		  t))
 
 
 (defun spot4e-format-playlist-tracks-for-helm-buffer-display (playlist-track-alist)
@@ -317,14 +333,14 @@
 
 (defun spot4e-play-playlist-track (playlist-track-alist)
   "Play track in context of the playlist the PLAYLIST-TRACK-ALIST appears on."
-  (let ((url-request-method "PUT")
-	(url-request-extra-headers
-	 `(("Authorization" . ,(concat "Bearer " spot4e-access-token))))
-	(url-request-data
-	 (format "{\"context_uri\":\"%s\", \"offset\":{\"uri\":\"%s\"}}"
-		 spot4e-playlist-uri
-		 (alist-get 'uri (alist-get 'track playlist-track-alist)))))
-    (url-retrieve-synchronously spot4e-player-play-url))
+  (spot4e-request "PUT"
+		  spot4e-player-play-url
+		  (concat "?access_token=" spot4e-access-token)
+		  nil
+		  nil
+		  (format "{\"context_uri\":\"%s\", \"offset\":{\"uri\":\"%s\"}}"
+			  spot4e-playlist-uri
+			  (alist-get 'uri (alist-get 'track playlist-track-alist))))
   (spot4e-message-currently-playing))
 
 
