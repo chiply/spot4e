@@ -302,7 +302,7 @@
   (let ((track-name (alist-get 'name (alist-get 'track playlist-track-alist)))
 	(artist-name (alist-get 'name (elt (alist-get 'artists (alist-get 'track playlist-track-alist)) 0)))
 	(album-name (alist-get 'name (alist-get 'album (alist-get 'track playlist-track-alist)))))
-    (concat track-name " --- "
+    (concat track-name "\n"
 	    artist-name "  |||  " album-name)))
 
 
