@@ -260,8 +260,9 @@
 			 (spot4e-get-categories-alist)))))
 
 
-(defun spot4e-helm-search-categories ()
-  "Display list of spotify categories in helm buffer for interaction."
+(defun spot4e-helm-search-categories (&optional spot4e-goback)
+  "Display list of spotify categories in helm buffer for interaction.
+SPOT4E-GOBACK is the helm selection and is not used."
   (interactive)
   (spot4e-helm "spot4e-categories-candidates" 'spot4e-categories-candidates
 	       '(("Display Category Playlists" . spot4e-helm-search-category-playlists))))
@@ -291,9 +292,11 @@
 (defun spot4e-helm-search-category-playlists (spot4e-category-alist)
   "Display list of playlists for given SPOT4E-CATEGORY-ALIST in helm buffer for interaction."
   (interactive)
+  (setq spot4e-category-alist-goback spot4e-category-alist)
   (let ((spot4e-category-id (alist-get 'id spot4e-category-alist)))
     (spot4e-helm "spot4e-category-playlists" (spot4e-category-playlist-candidates spot4e-category-id)
-		 '(("Display Playlist Tracks" . spot4e-helm-search-playlist-tracks)))))
+		 '(("Display Playlist Tracks" . spot4e-helm-search-playlist-tracks)
+		   ("Go Back" . spot4e-helm-search-categories)))))
 
 
 (defun spot4e-get-playlist-tracks-alist (spot4e-playlist-id)
@@ -335,6 +338,11 @@
   (spot4e-message-currently-playing))
 
 
+(defun spot4e-helm-goback-to-playlists (&optional spot4e-goback)
+  "Go back to playlists from trakcs.  SPOT4E-GOBACK is the helm selection and is not used."
+  (spot4e-helm-search-category-playlists spot4e-category-alist-goback))
+
+
 (defun spot4e-helm-search-playlist-tracks (spot4e-playlist-alist)
   "Display list of tracks in a playlist, given by SPOT4E-PLAYLIST-ALIST, in helm buffer for interaction."
   (interactive)
@@ -345,7 +353,8 @@
 				      ":playlist:"
 				      spot4e-playlist-id))
     (spot4e-helm "spot4e-playlist-tracks" (spot4e-playlist-tracks-candidates spot4e-playlist-id)
-		 '(("Play track" . spot4e-play-playlist-track)))))
+		 '(("Play track" . spot4e-play-playlist-track)
+		  ("Go Back" . spot4e-helm-goback-to-playlists)))))
 
 
 (provide 'spot4e)

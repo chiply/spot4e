@@ -127,6 +127,10 @@ A crude model for this browse interface is:
 
 category<-->playlist<-->track
 
+Note you can 'go back', let's say from playlists to category, by
+pressing <f-2>.  This makes browsing more natural - similar to what
+you might experience in the Spotify app.
+
 * Credits
 This package was primarily inspired by Kris Jenkins's [[https://github.com/krisajenkins/helm-spotify/blob/master/README.org][helm-spotify]],
 with the main differences being support for authentication and control
