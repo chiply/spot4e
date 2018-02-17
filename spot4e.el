@@ -243,6 +243,7 @@
 	       '(("Play track" . spot4e-play-track))))
 
 
+;; browsing functions
 (defun spot4e-get-categories-alist ()
   "Get list of spotofy categories."
   (spot4e-request "GET"
