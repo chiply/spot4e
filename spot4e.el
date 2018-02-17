@@ -355,7 +355,7 @@ SPOT4E-GOBACK is the helm selection and is not used."
 				      spot4e-playlist-id))
     (spot4e-helm "spot4e-playlist-tracks" (spot4e-playlist-tracks-candidates spot4e-playlist-id)
 		 '(("Play track" . spot4e-play-playlist-track)
-		  ("Go Back" . spot4e-helm-goback-to-playlists)))))
+		   ("Go Back" . spot4e-helm-goback-to-playlists)))))
 
 
 (provide 'spot4e)
