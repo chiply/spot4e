@@ -56,6 +56,8 @@
 (defvar spot4e-currently-playing-url (concat spot4e-player-url "/currently-playing"))
 (defvar spot4e-categories-url "https://api.spotify.com/v1/browse/categories")
 (defvar spot4e-playlist-url "https://api.spotify.com/v1/users/spotify/playlists")
+(defvar spot4e-new-releases-url "https://api.spotify.com/v1/browse/new-releases")
+(defvar spot4e-albums-url "https://api.spotify.com/v1/albums")
 
 
 (defun spot4e-retrieve-url-to-alist-synchronously (url)
@@ -356,6 +358,92 @@ SPOT4E-GOBACK is the helm selection and is not used."
     (spot4e-helm "spot4e-playlist-tracks" (spot4e-playlist-tracks-candidates spot4e-playlist-id)
 		 '(("Play track" . spot4e-play-playlist-track)
 		   ("Go Back" . spot4e-helm-goback-to-playlists)))))
+
+
+; new releases
+(defun spot4e-get-new-releases-alist ()
+  "Get list of spotify new releases (albums)."
+  (spot4e-request "GET"
+                  spot4e-new-releases-url
+		  (concat  "?access_token=" spot4e-access-token
+			   "&limit=" "50")
+		  t))
+
+
+(defun spot4e-format-album-for-helm-buffer-display (spot4e-album-alist)
+  "Format albums in SPOT4E-ALBUM-ALIST for display in helm buffer."
+  (let ((album-name (alist-get 'name  spot4e-album-alist))
+	(artist-name (alist-get 'name (elt (alist-get 'artists spot4e-album-alist) 0))))
+    (concat album-name "  |||  " artist-name)))
+
+
+(defun spot4e-new-releases-candidates ()
+  "Return name of the album (car) with album metadata (cdr)."
+  (mapcar
+   (lambda (album) (cons (spot4e-format-album-for-helm-buffer-display album) album))
+   (alist-get 'items
+	      (alist-get 'albums
+			 (spot4e-get-new-releases-alist)))))
+
+
+(defun spot4e-helm-search-new-releases (&optional spot4e-goback)
+    "Display list of spotify new album releases in helm buffer for interaction.
+SPOT4E-GOBACK is the helm selection and is not used."
+  (interactive)
+  (spot4e-helm "spot4e-new-releases-candidates" 'spot4e-new-releases-candidates
+	       '(("Search Album Tracks" . spot4e-helm-search-album-tracks))))
+
+
+(defun spot4e-get-album-tracks-alist (spot4e-album-id)
+  "Get list of tracks on an album (SPOT4E-ALBUM-ID)."
+  (spot4e-request "GET"
+                  (concat spot4e-albums-url
+			  "/"
+			  spot4e-album-id)
+		  (concat  "?access_token=" spot4e-access-token
+			   "&limit=" "50")
+		  t))
+
+(defun spot4e-format-album-track-for-helm-buffer-display (spot4e-album-track-alist)
+  "Format albums in SPOT4E-ALBUM-TRACK-ALIST for display in helm buffer."
+  (let ((track-name (alist-get 'name  spot4e-album-track-alist))
+	(artist-name (alist-get 'name (elt (alist-get 'artists spot4e-album-track-alist) 0))))
+    (concat track-name "  |||  " artist-name)))
+
+
+(defun spot4e-album-tracks-candidates (spot4e-album-id)
+  "Return name of the track (car) with track metadata (cdr) from album (SPOT4E-ALBUM-ID)."
+  (mapcar
+   (lambda (track) (cons (spot4e-format-album-track-for-helm-buffer-display track) track))
+   (alist-get 'items
+	      (alist-get 'tracks
+			 (spot4e-get-album-tracks-alist spot4e-album-id)))))
+
+
+(defun spot4e-play-album-track (spot4e-album-track-alist)
+  "Play track in context of the album the album (SPOT4E-ALBUM-TRACK-ALIST) appears on."
+  (spot4e-request "PUT"
+		  spot4e-player-play-url
+		  (concat "?access_token=" spot4e-access-token)
+		  nil
+		  nil
+		  (format "{\"context_uri\":\"%s\", \"offset\":{\"uri\":\"%s\"}}"
+			  spot4e-album-uri
+			  (alist-get 'uri spot4e-album-track-alist)))
+  (spot4e-message-currently-playing))
+
+
+(defun spot4e-helm-search-album-tracks (spot4e-album-alist)
+  "Display list of spotify album's (SPOT4E-ALBUM-ALIST) tracks in helm buffer for interaction."
+  (let ((spot4e-album-id (alist-get 'id spot4e-album-alist)))
+    (setq spot4e-album-uri (concat "spotify:album:"
+				   spot4e-album-id))
+    (message spot4e-album-uri)
+    (spot4e-helm "spot4e-album-tracks-candidates" (spot4e-album-tracks-candidates spot4e-album-id)
+		 '(("Play track" . spot4e-play-album-track)
+		   ("Go Back" . spot4e-helm-search-new-releases)))))
+
+  
 
 
 (provide 'spot4e)
