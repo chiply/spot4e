@@ -27,21 +27,21 @@
 (defvar spot4e-client-id "7b036492368d47c492d048aa8aec339b")
 (defvar spot4e-client-secret "4deb0f8b549f436a9d46202e701b57b8")
 (defvar spot4e-id-secret
-      (concat spot4e-client-id ":" spot4e-client-secret))
+  (concat spot4e-client-id ":" spot4e-client-secret))
 (defvar spot4e-b64-id-secret
-      (base64-encode-string spot4e-id-secret t))
+  (base64-encode-string spot4e-id-secret t))
 (defvar spot4e-redirect-uri (url-hexify-string "https://spotify.com"))
 (defvar spot4e-auth-url-full
-      (concat
-       "https://accounts.spotify.com/en/authorize"
-       "?response_type=code&client_id=" spot4e-client-id
-       "&redirect_uri=" spot4e-redirect-uri
-       "&scope=" (concat "streaming "
-			 "user-read-birthdate "
-			 "user-read-email "
-			 "user-read-private "
-			 "user-read-playback-state ")
-       "&show_dialog=" "true"))
+  (concat
+   "https://accounts.spotify.com/en/authorize"
+   "?response_type=code&client_id=" spot4e-client-id
+   "&redirect_uri=" spot4e-redirect-uri
+   "&scope=" (concat "streaming "
+		     "user-read-birthdate "
+		     "user-read-email "
+		     "user-read-private "
+		     "user-read-playback-state ")
+   "&show_dialog=" "true"))
 (defvar spot4e-token-url "https://accounts.spotify.com/api/token")
 (defvar spot4e-search-url "https://api.spotify.com/v1/search")
 
