@@ -398,8 +398,8 @@ SPOT4E-GOBACK is the helm selection and is not used."
 			 "/"
 			 spot4e-album-id)
 		 nil
-		 (concat  "?access_token=" spot4e-access-token
-			  "&limit=" "50")
+		 (concat "?access_token=" spot4e-access-token
+			 "&limit=" "50")
 		 '(tracks items) '(name) '(artists name) nil
 		 '(("Play track" . spot4e-play-album-track)
 		   ("Go Back" . spot4e-helm-search-new-releases)))))
