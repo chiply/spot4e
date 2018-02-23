@@ -59,6 +59,14 @@
 (defvar spot4e-new-releases-url "https://api.spotify.com/v1/browse/new-releases")
 (defvar spot4e-albums-url "https://api.spotify.com/v1/albums")
 
+(fset 'alist-get-chain 'alist-get)
+(defun alist-get-chain (symbols alist)
+  "Look up the value for the chain of SYMBOLS in ALIST."
+  (if symbols
+      (alist-get-chain (cdr symbols)
+		       (assoc (car symbols) alist))
+    (cdr alist)))
+
 
 (defun spot4e-retrieve-url-to-alist-synchronously (url)
   "Return alist representation of json response from URL."
@@ -68,16 +76,20 @@
                            (point-max) 'utf-8 t))))
 
 
-(defun spot4e-request (spot4e-request-method spot4e-request-url &optional spot4e-request-q-params spot4e-request-parse-json spot4e-request-extra-headers spot4e-request-data)
-  "Function to handle spot4e requests."
-  (let ((url-request-method spot4e-request-method)
-	(url-request-data spot4e-request-data)
-	(url-request-extra-headers spot4e-request-extra-headers))
-    (if spot4e-request-parse-json
+(defun spot4e-request (method url &optional q-params parse-json extra-headers data)
+  "Function to handle spot4e requests.
+METHOD is the request method, URL is the URL, Q-PARAMS is the
+query parameters, PARSE-JSON is a boolean for whether to parse
+and return the json response as an alist, EXTRA-HEADERS is an
+alist of headers, and DATA is request body data as JSON."
+  (let ((url-request-method method)
+	(url-request-data data)
+	(url-request-extra-headers extra-headers))
+    (if parse-json
 	(spot4e-retrieve-url-to-alist-synchronously
-	 (concat spot4e-request-url spot4e-request-q-params))
+	 (concat url q-params))
       (url-retrieve-synchronously
-       (concat spot4e-request-url spot4e-request-q-params)))))
+       (concat url q-params)))))
 
 
 (defun spot4e-authorize ()
@@ -96,17 +108,16 @@
 			  ("Authorization" . ,(concat "Basic " spot4e-b64-id-secret)))
 			nil
 			t))
-    (setq spot4e-access-token
-	  (alist-get 'access_token spot4e-tokens-alist))
-    (setq spot4e-refresh-token
-	  (alist-get 'refresh_token spot4e-tokens-alist)))
+  (setq spot4e-access-token
+	(alist-get-chain '(access_token) spot4e-tokens-alist))
+  (setq spot4e-refresh-token
+	(alist-get-chain '(refresh_token) spot4e-tokens-alist)))
 
 
 (defun spot4e-refresh ()
   "Obtain access_ and refresh_ tokens for user account."
   (interactive)
   (setq spot4e-refresh-alist
-	
 	(spot4e-request "POST"
 			spot4e-token-url
 			(concat "?grant_type=" "refresh_token"
@@ -115,19 +126,8 @@
 			`(("Content-Type" . "application/x-www-form-urlencoded")
 			  ("Authorization" . ,(concat "Basic " spot4e-b64-id-secret)))
 			nil))
-    (setq spot4e-access-token
-	  (alist-get 'access_token spot4e-refresh-alist)))
-
-
-(defun spot4e-get-track-search-results-alist (type q)
-  "Return json results from TYPE search for Q (query)."
-  (spot4e-request "GET"
-		  spot4e-search-url
-		  (concat "?q=" q
-			  "&type=" type
-			  "&limit=" "50"
-			  "&access_token=" spot4e-access-token)
-		  t))
+  (setq spot4e-access-token
+	(alist-get-chain '(access_token) spot4e-refresh-alist)))
 
 
 (defun spot4e-get-currently-playing-context ()
@@ -138,12 +138,13 @@
 			(concat  "?access_token=" spot4e-access-token)
 			t)))
 
+
 (defun spot4e-set-currently-playing ()
   "Set track, artist, album name for current track and store in spot4e-currently-playing."
   (interactive)
   (setq spot4e-currently-playing
 	(spot4e-format-track-for-mini-buffer-display
-	 (alist-get 'item (spot4e-get-currently-playing-context)))))
+	 (alist-get-chain '(item) (spot4e-get-currently-playing-context)))))
 
 
 (defun spot4e-message-currently-playing ()
@@ -157,7 +158,6 @@
 (defun spot4e-player-do-action (method action)
   "Via the METHOD spoecified, send ACTION to player endpoint."
   (interactive)
-  
   (spot4e-request method
 		  (concat spot4e-player-url action)
 		  (concat  "?access_token=" spot4e-access-token))
@@ -196,136 +196,134 @@
 		  nil
 		  nil
 		  (format "{\"context_uri\":\"%s\", \"offset\":{\"uri\":\"%s\"}}"
-			  (alist-get 'uri (alist-get 'album track))
-			  (alist-get 'uri track)))
+			  (alist-get-chain '(album uri) track)
+			  (alist-get-chain '(uri) track)))
   (spot4e-message-currently-playing))
 
+(defun spot4e-helm-formatter (item track-address artist-address context-address)
+  "Generic function to format requested data for display.  ITEM
+is the alist containing the data.  TRACK-ADDRESS, ARTIST-ADDRESS
+and CONTEXT-ADDRESS are the alist-get-chain arguments which point
+to the track, artist, and context, respctively"
+  (let ((track-name (when track-address
+		      (alist-get-chain track-address item)))
+	(artist-name (when artist-address
+		       (alist-get-chain
+			(list (car (last artist-address))) (elt (alist-get-chain (butlast artist-address) item) 0))))
+	(context-name (when context-address
+			(alist-get-chain context-address item))))
+    (cond ((and track-name artist-name context-name)
+	   (concat track-name "\n"
+		   artist-name "  |||  " context-name))
+	  ((and artist-name context-name (eq track-name nil))
+	   (concat context-name " ||| " artist-name))
+	  ((and context-name (eq track-name nil) (eq artist-name nil))
+	   context-name)
+	  ((and track-name artist-name (eq context-name nil)
+		(concat track-name " ||| "artist-name))))))
 
-(defun spot4e-helm (spot4e-helm-source-name spot4e-helm-source-candidates spot4e-helm-actions)
+
+(defun spot4e-helm-candidates ()
+  "Return name of the candidate (car) with candidate metadata (cdr)."
+  (mapcar (lambda (candidate) (cons
+			       (spot4e-helm-formatter candidate
+						      spot4e-track-address
+						      spot4e-artist-address
+						      spot4e-context-address)
+			       candidate))
+	  (alist-get-chain spot4e-alist-address
+			   (if (eq spot4e-dynamic-helm t)
+			       (spot4e-request "GET" spot4e-url
+					       (concat spot4e-q-params "&q=" helm-pattern) t)
+			     (spot4e-request "GET" spot4e-url spot4e-q-params t)))))
+
+
+;;  include candidates fn in the spot4e-helm function?
+(defun spot4e-helm (helm-source-name
+		    url
+		    dynamic-helm
+		    q-params
+		    alist-address
+		    track-address
+		    artist-address
+		    context-address
+		    helm-actions)
+  "Create helm buffer given args.
+HELM-SOURCE-NAME will be the name of the helm-source.
+URL is the url to the spotify api enpoint
+DYNAMIC-HELM specifies whether the api request should be updated with helm-pattern
+Q-PARAMS are the query paremters to be appended to the URL
+ALIST-ADDRESS will be the chain address of the candidate residing within the alist response
+TRACK-ADDRESS is the chain address of the track within the candidate alist
+ARTIST-ADDRESS is the chain address of the PLAYLIST within the candidate alist
+CONTEXT-ADDRESS is the chain address of the CONTEXT within the candidate alist
+HELM-ACTIONS is an alist representing the actions on a candidate."
+  (setq spot4e-url url)
+  (setq spot4e-dynamic-helm dynamic-helm)
+  (setq spot4e-q-params q-params)
+  (setq spot4e-alist-address alist-address)
+  (setq spot4e-track-address track-address)
+  (setq spot4e-artist-address artist-address)
+  (setq spot4e-context-address context-address)
   (helm
-   :sources (helm-build-sync-source spot4e-helm-source-name
-	      :candidates spot4e-helm-source-candidates
-	      :action spot4e-helm-actions
+   :sources (helm-build-sync-source helm-source-name
+	      :candidates 'spot4e-helm-candidates
+	      :action helm-actions
 	      :volatile t
 	      :multiline t)))
 
 
-(defun spot4e-format-track-for-helm-buffer-display (track)
-  "Formats TRACK for display in helm buffer."
-  (let ((track-name (alist-get 'name track))
-	(artist-name (alist-get 'name (elt (alist-get 'artists track) 0)))
-	(album-name (alist-get 'name (alist-get 'album track))))
-    (concat track-name "\n"
-	    artist-name "  |||  " album-name)))
-
-
 (defun spot4e-format-track-for-mini-buffer-display (track)
   "Formats TRACK for display in mini buffer."
-  (let ((track-name (alist-get 'name track))
-	(artist-name (alist-get 'name (elt (alist-get 'artists track) 0)))
-	(album-name (alist-get 'name (alist-get 'album track))))
+  (let ((track-name (alist-get-chain '(name) track))
+	(artist-name (alist-get-chain '(name) (elt (alist-get-chain '(artists) track) 0)))
+	(album-name (alist-get-chain '(album name) track)))
     (concat track-name " --- "
 	    artist-name "  |||  " album-name)))
-
-
-(defun spot4e-tracks-candidates ()
-  "Return name of the track (car) with track metadata (cdr)."
-  (mapcar
-   (lambda (track) (cons (spot4e-format-track-for-helm-buffer-display track) track))
-   (alist-get 'items
-	      (alist-get 'tracks
-			 (spot4e-get-track-search-results-alist "track" helm-pattern)))))
-
 
 
 (defun spot4e-helm-search-tracks ()
   "Fucntion to search via helm interface for spotify tracks matching user-input."
   (interactive)
-  (spot4e-helm "spot4e-tracks-candidates" 'spot4e-tracks-candidates
+  (spot4e-helm "spot4e-tracks-candidates"
+	       spot4e-search-url
+	       t
+	       (concat "?type=" "track"
+		       "&limit=" "50"
+		       "&access_token=" spot4e-access-token)
+	       '(tracks items) '(name) '(artists name) '(album name)
 	       '(("Play track" . spot4e-play-track))))
 
 
-;; browsing functions
-(defun spot4e-get-categories-alist ()
-  "Get list of spotofy categories."
-  (spot4e-request "GET"
-		  spot4e-categories-url
-		  (concat  "?access_token=" spot4e-access-token)
-		  t))
-
-
-(defun spot4e-categories-candidates ()
-  "Return name of the category (car) with category metadata (cdr)."
-  (mapcar
-   (lambda (category) (cons (alist-get 'name category) category))
-   (alist-get 'items
-	      (alist-get 'categories
-			 (spot4e-get-categories-alist)))))
-
-
+;; browsing function
 (defun spot4e-helm-search-categories (&optional spot4e-goback)
   "Display list of spotify categories in helm buffer for interaction.
 SPOT4E-GOBACK is the helm selection and is not used."
   (interactive)
-  (spot4e-helm "spot4e-categories-candidates" 'spot4e-categories-candidates
+  (spot4e-helm "spot4e-categories-candidates"
+	       spot4e-categories-url
+	       nil
+	       (concat  "?access_token=" spot4e-access-token)
+	       '(categories items) nil nil '(name)
 	       '(("Display Category Playlists" . spot4e-helm-search-category-playlists))))
-
-
-(defun spot4e-get-category-playlists-alist (spot4e-category-id)
-  "Get alist of playlists for a give SPOT4E-CATEGORY-ID."
-  (spot4e-request "GET"
-		  (concat spot4e-categories-url
-			  "/"
-			  spot4e-category-id
-			  "/playlists")
-		  (concat "?access_token=" spot4e-access-token
-			  "&limit=" "50")
-		  t))
-
-
-(defun spot4e-category-playlist-candidates (spot4e-category-id)
-  "Return name of playlist (car) with playlist metadata (cdr) for a given SPOT4E-CATEGORY-ID."
-  (mapcar
-   (lambda (playlist) (cons (alist-get 'name playlist) playlist))
-   (alist-get 'items
-	      (alist-get 'playlists
-			 (spot4e-get-category-playlists-alist spot4e-category-id)))))
 
 
 (defun spot4e-helm-search-category-playlists (spot4e-category-alist)
   "Display list of playlists for given SPOT4E-CATEGORY-ALIST in helm buffer for interaction."
   (interactive)
   (setq spot4e-category-alist-goback spot4e-category-alist)
-  (let ((spot4e-category-id (alist-get 'id spot4e-category-alist)))
-    (spot4e-helm "spot4e-category-playlists" (spot4e-category-playlist-candidates spot4e-category-id)
+  (let ((spot4e-category-id (alist-get-chain '(id) spot4e-category-alist)))
+    (spot4e-helm "spot4e-cetegory-playlist-candidates"
+		 (concat spot4e-categories-url
+			 "/"
+			 spot4e-category-id
+			 "/playlists")
+		 nil
+		 (concat "?access_token=" spot4e-access-token
+			 "&limit=" "50")
+		 '(playlists items) nil nil '(name)
 		 '(("Display Playlist Tracks" . spot4e-helm-search-playlist-tracks)
 		   ("Go Back" . spot4e-helm-search-categories)))))
-
-
-(defun spot4e-get-playlist-tracks-alist (spot4e-playlist-id)
-  "Return alist of tracks for a given SPOT4E-PLAYLIST-ID."
-  (spot4e-request "GET"
-		  (concat spot4e-playlist-url "/" spot4e-playlist-id)
-		  (concat "?access_token=" spot4e-access-token)
-		  t))
-
-
-(defun spot4e-format-playlist-tracks-for-helm-buffer-display (playlist-track-alist)
-  "Format playlist's tracks in PLAYLIST-TRACK-ALIST for display in helm buffer."
-  (let ((track-name (alist-get 'name (alist-get 'track playlist-track-alist)))
-	(artist-name (alist-get 'name (elt (alist-get 'artists (alist-get 'track playlist-track-alist)) 0)))
-	(album-name (alist-get 'name (alist-get 'album (alist-get 'track playlist-track-alist)))))
-    (concat track-name "\n"
-	    artist-name "  |||  " album-name)))
-
-
-(defun spot4e-playlist-tracks-candidates (spot4e-playlist-id)
-  "Return playlist track name (car) with playlist track metadata (cdr) for a given SPOT4E-PLAYLIST-ID."
-  (mapcar
-   (lambda (playlist) (cons (spot4e-format-playlist-tracks-for-helm-buffer-display playlist) playlist))
-   (alist-get 'items
-	      (alist-get 'tracks
-			 (spot4e-get-playlist-tracks-alist spot4e-playlist-id)))))
 
 
 (defun spot4e-play-playlist-track (playlist-track-alist)
@@ -337,7 +335,7 @@ SPOT4E-GOBACK is the helm selection and is not used."
 		  nil
 		  (format "{\"context_uri\":\"%s\", \"offset\":{\"uri\":\"%s\"}}"
 			  spot4e-playlist-uri
-			  (alist-get 'uri (alist-get 'track playlist-track-alist))))
+			  (alist-get-chain '(track uri) playlist-track-alist)))
   (spot4e-message-currently-playing))
 
 
@@ -349,75 +347,32 @@ SPOT4E-GOBACK is the helm selection and is not used."
 (defun spot4e-helm-search-playlist-tracks (spot4e-playlist-alist)
   "Display list of tracks in a playlist, given by SPOT4E-PLAYLIST-ALIST, in helm buffer for interaction."
   (interactive)
-  (let ((spot4e-playlist-id (alist-get 'id spot4e-playlist-alist))
-	(spot4e-user-id (alist-get 'id (alist-get 'owner spot4e-playlist-alist))))
+  (let ((spot4e-playlist-id (alist-get-chain '(id) spot4e-playlist-alist))
+	(spot4e-user-id (alist-get-chain '(owner id) spot4e-playlist-alist)))
     (setq spot4e-playlist-uri (concat "spotify:user:"
 				      spot4e-user-id
 				      ":playlist:"
 				      spot4e-playlist-id))
-    (spot4e-helm "spot4e-playlist-tracks" (spot4e-playlist-tracks-candidates spot4e-playlist-id)
+    (spot4e-helm "spot4e-playlist-tracks"
+		 (concat spot4e-playlist-url "/" spot4e-playlist-id)
+		 nil
+		 (concat "?access_token=" spot4e-access-token)
+		 '(tracks items) '(track name) '(track artists name) '(track album 'name)
 		 '(("Play track" . spot4e-play-playlist-track)
 		   ("Go Back" . spot4e-helm-goback-to-playlists)))))
 
 
-; new releases
-(defun spot4e-get-new-releases-alist ()
-  "Get list of spotify new releases (albums)."
-  (spot4e-request "GET"
-                  spot4e-new-releases-url
-		  (concat  "?access_token=" spot4e-access-token
-			   "&limit=" "50")
-		  t))
-
-
-(defun spot4e-format-album-for-helm-buffer-display (spot4e-album-alist)
-  "Format albums in SPOT4E-ALBUM-ALIST for display in helm buffer."
-  (let ((album-name (alist-get 'name  spot4e-album-alist))
-	(artist-name (alist-get 'name (elt (alist-get 'artists spot4e-album-alist) 0))))
-    (concat album-name "  |||  " artist-name)))
-
-
-(defun spot4e-new-releases-candidates ()
-  "Return name of the album (car) with album metadata (cdr)."
-  (mapcar
-   (lambda (album) (cons (spot4e-format-album-for-helm-buffer-display album) album))
-   (alist-get 'items
-	      (alist-get 'albums
-			 (spot4e-get-new-releases-alist)))))
-
-
 (defun spot4e-helm-search-new-releases (&optional spot4e-goback)
-    "Display list of spotify new album releases in helm buffer for interaction.
+  "Display list of spotify new album releases in helm buffer for interaction.
 SPOT4E-GOBACK is the helm selection and is not used."
   (interactive)
-  (spot4e-helm "spot4e-new-releases-candidates" 'spot4e-new-releases-candidates
+  (spot4e-helm "spot4e-new-releases-candidates"
+	       spot4e-new-releases-url
+	       nil
+	       (concat  "?access_token=" spot4e-access-token
+			"&limit=" "50")
+	       '(albums items) nil '(artists name) '(name)
 	       '(("Search Album Tracks" . spot4e-helm-search-album-tracks))))
-
-
-(defun spot4e-get-album-tracks-alist (spot4e-album-id)
-  "Get list of tracks on an album (SPOT4E-ALBUM-ID)."
-  (spot4e-request "GET"
-                  (concat spot4e-albums-url
-			  "/"
-			  spot4e-album-id)
-		  (concat  "?access_token=" spot4e-access-token
-			   "&limit=" "50")
-		  t))
-
-(defun spot4e-format-album-track-for-helm-buffer-display (spot4e-album-track-alist)
-  "Format albums in SPOT4E-ALBUM-TRACK-ALIST for display in helm buffer."
-  (let ((track-name (alist-get 'name  spot4e-album-track-alist))
-	(artist-name (alist-get 'name (elt (alist-get 'artists spot4e-album-track-alist) 0))))
-    (concat track-name "  |||  " artist-name)))
-
-
-(defun spot4e-album-tracks-candidates (spot4e-album-id)
-  "Return name of the track (car) with track metadata (cdr) from album (SPOT4E-ALBUM-ID)."
-  (mapcar
-   (lambda (track) (cons (spot4e-format-album-track-for-helm-buffer-display track) track))
-   (alist-get 'items
-	      (alist-get 'tracks
-			 (spot4e-get-album-tracks-alist spot4e-album-id)))))
 
 
 (defun spot4e-play-album-track (spot4e-album-track-alist)
@@ -429,21 +384,25 @@ SPOT4E-GOBACK is the helm selection and is not used."
 		  nil
 		  (format "{\"context_uri\":\"%s\", \"offset\":{\"uri\":\"%s\"}}"
 			  spot4e-album-uri
-			  (alist-get 'uri spot4e-album-track-alist)))
+			  (alist-get-chain '(uri) spot4e-album-track-alist)))
   (spot4e-message-currently-playing))
 
 
 (defun spot4e-helm-search-album-tracks (spot4e-album-alist)
   "Display list of spotify album's (SPOT4E-ALBUM-ALIST) tracks in helm buffer for interaction."
-  (let ((spot4e-album-id (alist-get 'id spot4e-album-alist)))
+  (let ((spot4e-album-id (alist-get-chain '(id) spot4e-album-alist)))
     (setq spot4e-album-uri (concat "spotify:album:"
 				   spot4e-album-id))
-    (message spot4e-album-uri)
-    (spot4e-helm "spot4e-album-tracks-candidates" (spot4e-album-tracks-candidates spot4e-album-id)
+    (spot4e-helm "spot4e-album-tracks-candidates"
+		 (concat spot4e-albums-url
+			 "/"
+			 spot4e-album-id)
+		 nil
+		 (concat  "?access_token=" spot4e-access-token
+			  "&limit=" "50")
+		 '(tracks items) '(name) '(artists name) nil
 		 '(("Play track" . spot4e-play-album-track)
 		   ("Go Back" . spot4e-helm-search-new-releases)))))
-
-  
 
 
 (provide 'spot4e)
