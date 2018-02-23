@@ -58,6 +58,7 @@
 (defvar spot4e-playlist-url "https://api.spotify.com/v1/users/spotify/playlists")
 (defvar spot4e-new-releases-url "https://api.spotify.com/v1/browse/new-releases")
 (defvar spot4e-albums-url "https://api.spotify.com/v1/albums")
+(defvar spot4e-recommendations-url "https://api.spotify.com/v1/recommendations")
 
 (fset 'alist-get-chain 'alist-get)
 (defun alist-get-chain (symbols alist)
@@ -403,6 +404,20 @@ SPOT4E-GOBACK is the helm selection and is not used."
 		 '(tracks items) '(name) '(artists name) nil
 		 '(("Play track" . spot4e-play-album-track)
 		   ("Go Back" . spot4e-helm-search-new-releases)))))
+
+
+(defun spot4e-helm-search-recommendations-track ()
+  "Get recommendations based upon currently playing track"
+  (interactive)
+  (spot4e-set-currently-playing)
+  (let ((track-id (alist-get-chain '(item id) (spot4e-get-currently-playing-context))))
+    (spot4e-helm "spot4e-recommendations"
+		 spot4e-recommendations-url
+		 nil
+		 (concat "?seed_tracks=" track-id
+			 "&access_token=" spot4e-access-token)
+		 '(tracks) '(name) '(artists name) '(album name)
+		 '(("Play Track" . spot4e-play-track)))))
 
 
 (provide 'spot4e)

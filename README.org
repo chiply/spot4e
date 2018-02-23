@@ -128,9 +128,27 @@ A crude model for this browse interface is:
 category<-->playlist<-->track
 
 Note you can 'go back', let's say from playlists to category, by
-pressing <f-2>.  This makes browsing more natural - similar to what
+pressing <f2>.  This makes browsing more natural - similar to what
 you might experience in the Spotify app.
 
+** Browse new releases by album
+To start the new releases browser:
+
+M-x spot4e-helm-search-new-releases
+
+And browse new releases.  Press enter on a new release to see the
+tracks (note most of these new releases will be singles, so there may
+only be one or two tracks).  Press enter on a track to play the
+track.  Go back to new releases with <f2>.
+
+** Browse recommended tracks based on currently playing track
+Assuming a track is playing, start the recommended track browser with:
+
+M-x spot4e-helm-search-recommendations-track
+
+And browse recommendations.  Of note, if done repeatedly, the
+recommended track list varies slightly, as I imagine there is some
+randomization that occurs in Spotify's recommendation engine. 
 * Credits
 This package was primarily inspired by Kris Jenkins's [[https://github.com/krisajenkins/helm-spotify/blob/master/README.org][helm-spotify]],
 with the main differences being support for authentication and control
