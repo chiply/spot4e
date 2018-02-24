@@ -60,6 +60,7 @@
 (defvar spot4e-albums-url "https://api.spotify.com/v1/albums")
 (defvar spot4e-recommendations-url "https://api.spotify.com/v1/recommendations")
 
+
 (fset 'alist-get-chain 'alist-get)
 (defun alist-get-chain (symbols alist)
   "Look up the value for the chain of SYMBOLS in ALIST."
@@ -293,7 +294,8 @@ HELM-ACTIONS is an alist representing the actions on a candidate."
 		       "&limit=" "50"
 		       "&access_token=" spot4e-access-token)
 	       '(tracks items) '(name) '(artists name) '(album name)
-	       '(("Play track" . spot4e-play-track))))
+	       '(("Play track" . spot4e-play-track)
+		 ("Get recommendations" . spot4e-helm-search-recommendations-track))))
 
 
 ;; browsing function
@@ -406,11 +408,13 @@ SPOT4E-GOBACK is the helm selection and is not used."
 		   ("Go Back" . spot4e-helm-search-new-releases)))))
 
 
-(defun spot4e-helm-search-recommendations-track ()
-  "Get recommendations based upon currently playing track"
+(defun spot4e-helm-search-recommendations-track (&optional track-alist)
+  "Get recommendations based upon currently playing track or track selected (TRACK-ALIST) in spot4e-helm-search-tracks."
   (interactive)
-  (spot4e-set-currently-playing)
-  (let ((track-id (alist-get-chain '(item id) (spot4e-get-currently-playing-context))))
+  ;(spot4e-set-currently-playing)
+  (let ((track-id (if track-alist
+		      (alist-get-chain '(id) track-alist)
+		    (alist-get-chain '(item id) (spot4e-get-currently-playing-context)))))
     (spot4e-helm "spot4e-recommendations"
 		 spot4e-recommendations-url
 		 nil
@@ -418,6 +422,7 @@ SPOT4E-GOBACK is the helm selection and is not used."
 			 "&access_token=" spot4e-access-token)
 		 '(tracks) '(name) '(artists name) '(album name)
 		 '(("Play Track" . spot4e-play-track)))))
+
 
 
 (provide 'spot4e)

@@ -149,6 +149,10 @@ M-x spot4e-helm-search-recommendations-track
 And browse recommendations.  Of note, if done repeatedly, the
 recommended track list varies slightly, as I imagine there is some
 randomization that occurs in Spotify's recommendation engine. 
+
+Of note you can also get recommendations from the
+spot4e-helm-search-tracks interface by pressing <f2>.  This way you
+can get recommendations based upon specific songs you have in mind!
 * Credits
 This package was primarily inspired by Kris Jenkins's [[https://github.com/krisajenkins/helm-spotify/blob/master/README.org][helm-spotify]],
 with the main differences being support for authentication and control
