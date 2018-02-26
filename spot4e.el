@@ -295,7 +295,8 @@ HELM-ACTIONS is an alist representing the actions on a candidate."
 		       "&access_token=" spot4e-access-token)
 	       '(tracks items) '(name) '(artists name) '(album name)
 	       '(("Play track" . spot4e-play-track)
-		 ("Get recommendations" . spot4e-helm-search-recommendations-track))))
+		 ("Get recommendations" . spot4e-helm-search-recommendations-track)
+		 ("Save track" . spot4e-save))))
 
 
 ;; browsing function
