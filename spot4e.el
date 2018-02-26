@@ -40,7 +40,8 @@
 		     "user-read-birthdate "
 		     "user-read-email "
 		     "user-read-private "
-		     "user-read-playback-state ")
+		     "user-read-playback-state "
+		     "user-library-modify")
    "&show_dialog=" "true"))
 (defvar spot4e-token-url "https://accounts.spotify.com/api/token")
 (defvar spot4e-search-url "https://api.spotify.com/v1/search")
@@ -422,6 +423,21 @@ SPOT4E-GOBACK is the helm selection and is not used."
 		 '(tracks) '(name) '(artists name) '(album name)
 		 '(("Play Track" . spot4e-play-track)))))
 
+
+(defvar spot4e-me-url "https://api.spotify.com/v1/me")
+
+;;user data functions
+(defun spot4e-save (&optional track-alist)
+  "Save currently playing track, or track represented by TRACK-ALIST."
+  (interactive)
+  (let ((track-id (if track-alist
+		      (alist-get-chain '(id) track-alist)
+		    (alist-get-chain '(item id) (spot4e-get-currently-playing-context)))))
+    (switch-to-buffer (spot4e-request "PUT"
+		    (concat spot4e-me-url "/tracks")
+		    (concat "?access_token=" spot4e-access-token
+			    "&ids=" track-id)
+		    t))))
 
 
 (provide 'spot4e)
