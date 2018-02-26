@@ -108,8 +108,7 @@ alist of headers, and DATA is request body data as JSON."
 			t
 			`(("Content-Type" . "application/x-www-form-urlencoded")
 			  ("Authorization" . ,(concat "Basic " spot4e-b64-id-secret)))
-			nil
-			t))
+			nil))
   (setq spot4e-access-token
 	(alist-get-chain '(access_token) spot4e-tokens-alist))
   (setq spot4e-refresh-token
