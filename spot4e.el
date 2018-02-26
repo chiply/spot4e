@@ -433,11 +433,10 @@ SPOT4E-GOBACK is the helm selection and is not used."
   (let ((track-id (if track-alist
 		      (alist-get-chain '(id) track-alist)
 		    (alist-get-chain '(item id) (spot4e-get-currently-playing-context)))))
-    (switch-to-buffer (spot4e-request "PUT"
+    (spot4e-request "PUT"
 		    (concat spot4e-me-url "/tracks")
 		    (concat "?access_token=" spot4e-access-token
-			    "&ids=" track-id)
-		    t))))
+			    "&ids=" track-id))))
 
 
 (provide 'spot4e)
