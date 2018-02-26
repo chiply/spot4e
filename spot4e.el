@@ -60,7 +60,7 @@
 (defvar spot4e-new-releases-url "https://api.spotify.com/v1/browse/new-releases")
 (defvar spot4e-albums-url "https://api.spotify.com/v1/albums")
 (defvar spot4e-recommendations-url "https://api.spotify.com/v1/recommendations")
-
+(defvar spot4e-me-url "https://api.spotify.com/v1/me")
 
 (fset 'alist-get-chain 'alist-get)
 (defun alist-get-chain (symbols alist)
@@ -424,8 +424,6 @@ SPOT4E-GOBACK is the helm selection and is not used."
 		 '(tracks) '(name) '(artists name) '(album name)
 		 '(("Play Track" . spot4e-play-track)))))
 
-
-(defvar spot4e-me-url "https://api.spotify.com/v1/me")
 
 ;;user data functions
 (defun spot4e-save (&optional track-alist)
