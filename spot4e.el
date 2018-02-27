@@ -41,7 +41,8 @@
 		     "user-read-email "
 		     "user-read-private "
 		     "user-read-playback-state "
-		     "user-library-modify")
+		     "user-library-modify "
+		     "user-library-read")
    "&show_dialog=" "true"))
 (defvar spot4e-token-url "https://accounts.spotify.com/api/token")
 (defvar spot4e-search-url "https://api.spotify.com/v1/search")
@@ -436,6 +437,30 @@ SPOT4E-GOBACK is the helm selection and is not used."
 		    (concat spot4e-me-url "/tracks")
 		    (concat "?access_token=" spot4e-access-token
 			    "&ids=" track-id))))
+
+
+(defun spot4e-play-saved-track (track)
+  "Play TRACK in context of the album the TRACK appears on."
+  (spot4e-request "PUT"
+		  spot4e-player-play-url
+		  (concat "?access_token=" spot4e-access-token)
+		  nil
+		  nil
+		  (format "{\"context_uri\":\"%s\", \"offset\":{\"uri\":\"%s\"}}"
+			  (alist-get-chain '(track album uri) track)
+			  (alist-get-chain '(track uri) track)))
+  (spot4e-message-currently-playing))
+
+
+(defun spot4e-helm-search-saved-tracks ()
+  "Helm search user's saved tracks."
+  (interactive)
+  (spot4e-helm "spot4e-saved-tracks"
+	       (concat spot4e-me-url "/tracks")
+	       nil
+	       (concat "?access_token=" spot4e-access-token)
+	       '(items) '(track name) '(track artists name) '(track album name)
+	       '(("Play track" . spot4e-play-saved-track))))
 
 
 (provide 'spot4e)
