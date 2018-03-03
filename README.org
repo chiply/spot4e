@@ -96,8 +96,9 @@ You can control Spotify playback with the following.
 | spot4e-player-next               | send next to Spotify playback       |
 | spot4e-player-previous           | send previous to Spotify playback   |
 
-** Search track by album-, artist-, or track name
-To start the helm interface to Spotify:
+** Search
+*** Search track by album-, artist-, or track name
+To start searching for tracks:
 
 M-x spot4e-search-tracks
 
@@ -113,8 +114,30 @@ respectively.
 To play a track, simply press Enter.  By default, the track plays in
 the context of the album in which it appears, otherwise playback stops
 after the song is finished.
+*** Search for album by album- or artist- name
+To start searching for albums:
 
-** Browse tracks by category --> playlist
+M-x spot4e-search-albums
+
+and begin searching for albums
+
+Navigate through tracks as usual and press enter to see album tracks.
+Press enter on an album track to play the track.  You can navigate
+back to search-albums with <f2>.
+*** Search for artist by artist- name
+To start searching for artists:
+
+M-x spot4e-search-artists
+
+and begin searching for artists
+
+Navigate through artists as usual and press enter to see artist albums.
+Press enter on an artist album to see album tracks.  You can navigate
+back to search-albums with <f2>.
+
+Press enter on album-track to play the track.
+** Browse
+*** Browse category --> playlist
 To start the category browser:
 
 M-x spot4e-helm-search-categories
@@ -131,17 +154,52 @@ Note you can 'go back', let's say from playlists to category, by
 pressing <f2>.  This makes browsing more natural - similar to what
 you might experience in the Spotify app.
 
-** Browse new releases by album
+*** Browse new releases by album
 To start the new releases browser:
 
 M-x spot4e-helm-search-new-releases
 
-And browse new releases.  Press enter on a new release to see the
-tracks (note most of these new releases will be singles, so there may
-only be one or two tracks).  Press enter on a track to play the
-track.  Go back to new releases with <f2>.
+And browse new releases.  Note these are albums.  Press enter on a new
+release to see the tracks (note most of these new releases will be
+singles, so there may only be one or two tracks).  Press enter on a
+track to play the track.  Go back to new releases with <f2>.
 
-** Browse recommended tracks based on currently playing track
+*** Browse featured-playlists
+To start browsing featured playlists:
+
+M-x spot4e-helm-search-featured-playlists
+
+And browse featured playlists.  Press enter on a playlist to view
+it's tracks.  Press enter on a track to play the track or <f2> to go
+back to playlists.
+*** Browse user-playlists
+To start browsing user owned and followed playlists:
+
+M-x spot4e-helm-search-user-playlists
+
+And browse user followed playlists.  Press enter on a playlist to view
+it's tracks.  Press enter on a track to play the track or <f2> to go
+back to playlists.
+*** Browse user-artists
+To start browsing user followed artists:
+
+M-x spot4e-helm-search-user-artists
+
+Navigate through artists as usual and press enter to see artist albums.
+Press enter on an artist album to see album tracks.  You can navigate
+back to search-albums with <f2>.
+
+Press enter on album-track to play the track.
+*** Browse user-tracks
+To start browsing user saved tracks:
+
+M-x spot4e-helm-search-user-tracks
+
+and browse user-saved tracks.
+
+Press enter on a track to play the track.
+
+*** Browse recommended tracks based on currently playing track
 Assuming a track is playing, start the recommended track browser with:
 
 M-x spot4e-helm-search-recommendations-track
@@ -152,7 +210,18 @@ randomization that occurs in Spotify's recommendation engine.
 
 Of note you can also get recommendations from the
 spot4e-helm-search-tracks interface by pressing <f2>.  This way you
-can get recommendations based upon specific songs you have in mind!
+can get recommendations based upon specific songs you have in
+
+** User data
+*** Save tracks
+To save a track:
+
+spot4e-save.
+
+This will then appear in your saved tracks on Spotify (can access
+these with spot4e-helm-search-user-tracks).  Note that you can also
+save tracks from the spot4e-helm-search-tracks interface with
+spot4e-save. 
 * Credits
 This package was primarily inspired by Kris Jenkins's [[https://github.com/krisajenkins/helm-spotify/blob/master/README.org][helm-spotify]],
 with the main differences being support for authentication and control
