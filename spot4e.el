@@ -67,6 +67,7 @@
 (defvar spot4e-me-url "https://api.spotify.com/v1/me")
 (defvar spot4e-users-url "https://api.spotify.com/v1/users")
 (defvar spot4e-following-url "https://api.spotify.com/v1/me/following")
+(defvar spot4e-tracks-url "https://api.spotify.com/v1/tracks/")
 
 
 (fset 'alist-get-chain 'alist-get)
@@ -83,7 +84,7 @@
   (with-current-buffer (url-retrieve-synchronously url)
     (json-read-from-string
      (decode-coding-region (+ 1 url-http-end-of-headers)
-                           (point-max) 'utf-8 t))))
+			   (point-max) 'utf-8 t))))
 
 
 (defun spot4e-request (method url &optional q-params parse-json extra-headers data)
@@ -294,25 +295,24 @@ ARTIST-ADDRESS, CONTEXT-ADDRESS."
   (let ((url (cond ((equal type "search")
 		    spot4e-search-url)
 		   ((equal type "album")
-		    (progn
-		      (setq spot4e-album-uri
-			    (alist-get-chain '(uri) selection))
-		      (concat spot4e-albums-url
-			      "/"
-			      (alist-get-chain '(id) selection))))
+		    (concat spot4e-albums-url
+			    "/"
+			    (alist-get-chain '(id) selection)))
 		   ((equal type "user")
 		    (concat spot4e-me-url "/tracks"))
+		   ((equal type "rec")
+		    spot4e-recommendations-url)
 		   ((equal type "playlist")
 		    (progn
 		      (setq spot4e-playlist-uri
 			    (alist-get-chain '(uri) selection))
 		      (concat "https://api.spotify.com/v1/users"
-			    "/"
-			    (alist-get-chain '(owner id) selection)
-			    "/"
-			    "playlists"
-			    "/"
-			    (alist-get-chain '(id) selection)))))))
+			      "/"
+			      (alist-get-chain '(owner id) selection)
+			      "/"
+			      "playlists"
+			      "/"
+			      (alist-get-chain '(id) selection)))))))
     (spot4e-helm "spot4e-track-candidates"
 		 url
 		 (when (equal type "search")
@@ -321,10 +321,11 @@ ARTIST-ADDRESS, CONTEXT-ADDRESS."
 				 "&limit=" "50")
 			 extra-q-params)
 		 alist-address name-address artist-address context-address
-		 '(("Play Track" . spot4e-play-fn)
+		 '(("Play Track" . (lambda (candidate) (spot4e-play-track type candidate)))
 		   ("Go Back" . (lambda (candidate) (spot4e-goback-from-tracks-fn goback-alist)))
-		   ("Get recommendations" . spot4e-helm-search-recommendations-track)
-		   ("Save track" . spot4e-save)))))
+		   ("Get recommendations" . (lambda (candidate) (spot4e-helm-search-recommendation-tracks type
+												     candidate)))
+		   ("Save track" . (lambda (candidate) (spot4e-save type candidate)))))))
 
 
 (defun spot4e-helm-albums (type alist-address extra-q-params &optional selection)
@@ -501,14 +502,12 @@ This interface can be returned to with a goback action in the
 subsequent helm-buffer, GOBACK-ALIST is the 'selection' from that
 buffer and is ignored."
   (interactive)
-  (fset 'spot4e-play-fn 'spot4e-play-album-track)
   (spot4e-helm-tracks "album" '(tracks items) '(name) '(artists name) nil nil selection goback-alist))
 
 
 (defun spot4e-helm-search-tracks ()
   "Displays list of user-artists in helm buffer for interaction given helm-pattern."
   (interactive)
-  (fset 'spot4e-play-fn 'spot4e-play-track)
   (spot4e-helm-tracks "search" '(tracks items) '(name) '(artists name) '(album name) (concat "&type=" "track")))
 
 
@@ -518,96 +517,77 @@ This interface can be returned to with a goback action in the
 subsequent helm-buffer, GOBACK-ALIST is the 'selection' from that
 buffer and is ignored."
   (interactive)
-  (fset 'spot4e-play-fn 'spot4e-play-playlist-track)
   (spot4e-helm-tracks "playlist" '(tracks items) '(track name) '(track artists name) '(track album name) nil selection goback-alist))
-
-
-(defun spot4e-helm-search-recommendations-track (&optional track-alist)
-  "Get recommendations based upon currently playing track or track selected (TRACK-ALIST) in spot4e-helm-search-tracks."
-  (interactive)
-					;(spot4e-set-currently-playing)
-  (let ((track-id (if track-alist
-		      (alist-get-chain '(id) track-alist)
-		    (alist-get-chain '(item id) (spot4e-get-currently-playing-context)))))
-    (spot4e-helm "spot4e-recommendations"
-		 spot4e-recommendations-url
-		 nil
-		 (concat "?seed_tracks=" track-id
-			 "&access_token=" spot4e-access-token
-			 "&limit=" "50")
-		 '(tracks) '(name) '(artists name) '(album name)
-		 '(("Play Track" . spot4e-play-track)))))
-
+  
 
 (defun spot4e-helm-search-user-tracks ()
   "docs"
   (interactive)
-  (fset 'spot4e-play-fn 'spot4e-play-saved-track)
   (spot4e-helm-tracks "user" '(items) '(track name) '(track artists name) '(track album name) nil))
 
 
-(defun spot4e-play-saved-track (track)
+(defun spot4e-helm-search-recommendation-tracks (&optional type selection)
+  "Get recommendations based upon currently playing track or track selected (TRACK-ALIST) in spot4e-helm-search-tracks."
+  (interactive)
+  (let ((track-id (if selection
+		      (alist-get-chain
+		       (if (or (equal type "search")
+			       (equal type "album")
+			       (equal type "rec"))
+			   '(id)
+			 '(track id))
+		       selection)
+		    (alist-get-chain '(item id) (spot4e-get-currently-playing-context)))))
+    (message track-id)
+    (spot4e-helm-tracks "rec" '(tracks) '(name) '(artists name) '(album name)
+			(concat "&seed_tracks=" track-id
+				"&access_token=" spot4e-access-token
+				"&limit=" "50"))))
+
+
+(defun spot4e-play-track (type track)
   "Play TRACK in context of the album the TRACK appears on."
-  (spot4e-request "PUT"
-		  spot4e-player-play-url
-		  (concat "?access_token=" spot4e-access-token)
-		  nil
-		  nil
-		  (format "{\"context_uri\":\"%s\", \"offset\":{\"uri\":\"%s\"}}"
-			  (alist-get-chain '(track album uri) track)
-			  (alist-get-chain '(track uri) track)))
+  (let ((alist (spot4e-request "GET"
+			       (concat spot4e-tracks-url
+				       (alist-get-chain
+					(if (or (equal type "search")
+						(equal type "album")
+						(equal type "rec"))
+					    '(id)
+					  '(track id))
+					track))
+			       (concat "?access_token="
+				       spot4e-access-token)
+			       t)))
+    (spot4e-request "PUT"
+		    spot4e-player-play-url
+		    (concat "?access_token=" spot4e-access-token)
+		    nil
+		    nil
+		    (format "{\"context_uri\":\"%s\", \"offset\":{\"uri\":\"%s\"}}"
+			    (if (equal type "playlist")
+				spot4e-playlist-uri
+			      (alist-get-chain '(album uri) alist))
+			    (alist-get-chain '(uri) alist))))
   (spot4e-message-currently-playing))
 
 
-(defun spot4e-play-album-track (spot4e-album-track-alist)
-  "Play track in context of the album the album (SPOT4E-ALBUM-TRACK-ALIST) appears on."
-  (spot4e-request "PUT"
-		  spot4e-player-play-url
-		  (concat "?access_token=" spot4e-access-token)
-		  nil
-		  nil
-		  (format "{\"context_uri\":\"%s\", \"offset\":{\"uri\":\"%s\"}}"
-			  spot4e-album-uri
-			  (alist-get-chain '(uri) spot4e-album-track-alist)))
-  (spot4e-message-currently-playing))
-
-
-(defun spot4e-play-playlist-track (playlist-track-alist)
-  "Play track in context of the playlist the PLAYLIST-TRACK-ALIST appears on."
-  (spot4e-request "PUT"
-		  spot4e-player-play-url
-		  (concat "?access_token=" spot4e-access-token)
-		  nil
-		  nil
-		  (format "{\"context_uri\":\"%s\", \"offset\":{\"uri\":\"%s\"}}"
-			  spot4e-playlist-uri
-			  (alist-get-chain '(track uri) playlist-track-alist)))
-  (spot4e-message-currently-playing))
-
-
-(defun spot4e-play-track (track)
-  "Play TRACK in context of the album the TRACK appears on."
-  (spot4e-request "PUT"
-		  spot4e-player-play-url
-		  (concat "?access_token=" spot4e-access-token)
-		  nil
-		  nil
-		  (format "{\"context_uri\":\"%s\", \"offset\":{\"uri\":\"%s\"}}"
-			  (alist-get-chain '(album uri) track)
-			  (alist-get-chain '(uri) track)))
-  (spot4e-message-currently-playing))
-
-
-(defun spot4e-save (&optional track-alist)
+(defun spot4e-save (&optional type selection)
   "Save currently playing track, or track represented by TRACK-ALIST."
   (interactive)
-  (let ((track-id (if track-alist
-		      (alist-get-chain '(id) track-alist)
+  (let ((track-id (if selection
+		      (alist-get-chain
+		       (if (or (equal type "search")
+			       (equal type "album")
+			       (equal type "rec"))
+			   '(id)
+			 '(track id))
+		       selection)
 		    (alist-get-chain '(item id) (spot4e-get-currently-playing-context)))))
     (spot4e-request "PUT"
 		    (concat spot4e-me-url "/tracks")
 		    (concat "?access_token=" spot4e-access-token
-			    "&ids=" track-id))))
+			    "&ids=" track-id)))))
 
 (provide 'spot4e)
 ;;; spot4e.el ends here
