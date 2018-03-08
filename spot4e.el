@@ -283,7 +283,7 @@ an alist representing the actions on a candidate."
 	    artist-name "  |||  " album-name)))
 
 
-(defun spot4e-helm-tracks (type alist-address name-address artist-address context-address extra-q-params &optional selection goback-alist)
+(defun spot4e-helm-tracks (type extra-q-params &optional selection goback-alist)
   "Displays list of tracks in helm-buffer for interaction.
 TYPE indicates the type of tracks, i.e. playlists, albums, search
 etc... You can pass EXTRA-Q-PARAMS to the query if necessary.
@@ -312,7 +312,27 @@ ARTIST-ADDRESS, CONTEXT-ADDRESS."
 			      "/"
 			      "playlists"
 			      "/"
-			      (alist-get-chain '(id) selection)))))))
+			      (alist-get-chain '(id) selection))))))
+	(alist-address (cond ((or (equal type "search") (equal type "album") (equal type "playlist"))
+			      '(tracks items))
+			     ((equal type "user")
+			      '(items))
+			     ((equal type "rec")
+			      '(tracks))))
+	(name-address (cond ((or (equal type "search") (equal type "rec") (equal type "album"))
+			     '(name))
+			    ((or (equal type "user") (equal type "playlist"))
+			     '(track name))))
+	(artist-address (cond ((or (equal type "search") (equal type "rec") (equal type "album"))
+			       '(artists name))
+			      ((or (equal type "user") (equal type "playlist"))
+			       '(track artists name))))
+	(context-address (cond ((or (equal type "search") (equal type "rec"))
+				'(album name))
+			       ((equal type "album")
+				nil)
+			       ((or (equal type "user") (equal type "playlist"))
+				'(track album name)))))
     (spot4e-helm "spot4e-track-candidates"
 		 url
 		 (when (equal type "search")
@@ -321,14 +341,19 @@ ARTIST-ADDRESS, CONTEXT-ADDRESS."
 				 "&limit=" "50")
 			 extra-q-params)
 		 alist-address name-address artist-address context-address
-		 '(("Play Track" . (lambda (candidate) (spot4e-play-track type candidate)))
-		   ("Go Back" . (lambda (candidate) (spot4e-goback-from-tracks-fn goback-alist)))
-		   ("Get recommendations" . (lambda (candidate) (spot4e-helm-search-recommendation-tracks type
-												     candidate)))
-		   ("Save track" . (lambda (candidate) (spot4e-save type candidate)))))))
+		 '(("Play Track" . (lambda (candidate)
+				     (spot4e-play-track type candidate)))
+		   ("Go Back" . (lambda (candidate)
+				  (spot4e-goback-from-tracks-fn goback-alist)))
+		   ("Get recommendations" . (lambda (candidate)
+					      (spot4e-helm-search-recommendation-tracks
+					       type
+					       candidate)))
+		   ("Save track" . (lambda (candidate)
+				     (spot4e-save type candidate)))))))
 
 
-(defun spot4e-helm-albums (type alist-address extra-q-params &optional selection)
+(defun spot4e-helm-albums (type extra-q-params &optional selection)
   "Displays list of albums in helm-buffer for interaction.
 TYPE indicates the type of albums, i.e. new-releases, artist, search
 etc... You can pass EXTRA-Q-PARAMS to the query if necessary.
@@ -345,7 +370,11 @@ data via ALIST-ADDRESS."
 			    "/"
 			    "albums"))
 		   ((equal type "new")
-		    spot4e-new-releases-url))))
+		    spot4e-new-releases-url)))
+	(alist-address (if (or (equal type "search")
+			       (equal type "new"))
+			   '(albums items)
+			 '(items))))
     (spot4e-helm "spot4e-album-candidates"
 		 url
 		 (when (equal type "search")
@@ -357,7 +386,8 @@ data via ALIST-ADDRESS."
 		 '(("Display Album Tracks" . (lambda (candidate) (spot4e-helm-search-album-tracks
 							     candidate
 							     selection)))
-		   ("Go Back" . (lambda (candidate) (spot4e-goback-from-albums-fn)))))))
+		   ("Go Back" . (lambda (candidate)
+				  (spot4e-goback-from-albums-fn)))))))
 
 
 (defun spot4e-helm-artists (type extra-q-params)
@@ -380,11 +410,12 @@ data."
 				 "&limit=" "50")
 			 extra-q-params)
 		 '(artists items) nil nil '(name)
-		 '(("Display Album Tracks" . (lambda (candidate) (spot4e-helm-search-artist-albums
-							     candidate)))))))
+		 '(("Display Album Tracks" . (lambda (candidate)
+					       (spot4e-helm-search-artist-albums
+						candidate)))))))
 
 
-(defun spot4e-helm-playlists (type alist-address &optional selection)
+(defun spot4e-helm-playlists (type &optional selection)
     "Displays list of playlists in helm-buffer for interaction.
 TYPE indicates the type of playlists, i.e. featured, user,
 category etc...  This is relevant because each type has a
@@ -405,17 +436,23 @@ extract data via ALIST-ADDRESS."
 		   ((equal type "user")
 		    (concat spot4e-me-url
 			    "/"
-			    "playlists")))))
+			    "playlists"))))
+	(alist-address (if (or (equal type "cat")
+			       (equal type "feat"))
+			   '(playlists items)
+			 '(items))))
     (spot4e-helm "spot4e-cetegory-playlist-candidates"
 		 url
 		 nil
 		 (concat "?access_token=" spot4e-access-token
 			 "&limit=" "50")
 		 alist-address nil nil '(name)
-		 '(("Display Playlist Tracks" . (lambda (candidate) (spot4e-helm-search-playlist-tracks
-								     candidate
-								     selection)))
-		   ("Go Back" . (lambda (candidate) (spot4e-helm-search-categories)))))))
+		 '(("Display Playlist Tracks" . (lambda (candidate)
+						  (spot4e-helm-search-playlist-tracks
+						   candidate
+						   selection)))
+		   ("Go Back" . (lambda (candidate)
+				  (spot4e-helm-search-categories)))))))
 
 
 (defun spot4e-helm-search-categories ()
@@ -451,14 +488,14 @@ subsequent helm-buffer, GOBACK-ALIST is the 'selection' from that
 buffer and is ignored."
   (interactive)
   (fset 'spot4e-goback-from-tracks-fn 'spot4e-helm-search-albums)
-  (spot4e-helm-albums "search" '(albums items) (concat "&type=" "album")))
+  (spot4e-helm-albums "search" (concat "&type=" "album")))
 
 
 (defun spot4e-helm-search-artist-albums (selection)
   "Displays list of artists-albums in helm buffer for interaction given SELECTION."
   (interactive)
   (fset 'spot4e-goback-from-tracks-fn 'spot4e-helm-search-artist-albums)
-  (spot4e-helm-albums "artist" '(items) (concat "&album_type=" "album,single") selection))
+  (spot4e-helm-albums "artist" (concat "&album_type=" "album,single") selection))
 
 
 (defun spot4e-helm-search-new-releases (&optional goback-alist)
@@ -466,14 +503,14 @@ buffer and is ignored."
 GOBACK-ALIST is the helm selection and is not used."
   (interactive)
   (fset 'spot4e-goback-from-tracks-fn 'spot4e-helm-search-new-releases)
-  (spot4e-helm-albums "new" '(albums items) nil))
+  (spot4e-helm-albums "new" nil))
 
 
 (defun spot4e-helm-search-category-playlists (selection)
   "Displays list of cateogry-playlists in helm buffer for interaction given SELECTION."
   (interactive)
   (fset 'spot4e-goback-from-tracks-fn 'spot4e-helm-search-category-playlists)
-  (spot4e-helm-playlists "cat" '(playlists items) selection))
+  (spot4e-helm-playlists "cat" selection))
 
 
 (defun spot4e-helm-search-featured-playlists (&optional goback-alist)
@@ -483,7 +520,7 @@ subsequent helm-buffer, GOBACK-ALIST is the 'selection' from that
 buffer and is ignored."
   (interactive)
   (fset 'spot4e-goback-from-tracks-fn 'spot4e-helm-search-featured-playlists)
-  (spot4e-helm-playlists "feat" '(playlists items)))
+  (spot4e-helm-playlists "feat"))
 
 
 (defun spot4e-helm-search-user-playlists (&optional goback-alist)
@@ -493,7 +530,7 @@ subsequent helm-buffer, GOBACK-ALIST is the 'selection' from that
 buffer and is ignored."
   (interactive)
   (fset 'spot4e-goback-from-tracks-fn 'spot4e-helm-search-user-playlists)
-  (spot4e-helm-playlists "user" '(items)))
+  (spot4e-helm-playlists "user"))
 
 
 (defun spot4e-helm-search-album-tracks (selection &optional goback-alist)
@@ -502,13 +539,13 @@ This interface can be returned to with a goback action in the
 subsequent helm-buffer, GOBACK-ALIST is the 'selection' from that
 buffer and is ignored."
   (interactive)
-  (spot4e-helm-tracks "album" '(tracks items) '(name) '(artists name) nil nil selection goback-alist))
+  (spot4e-helm-tracks "album" nil selection goback-alist))
 
 
 (defun spot4e-helm-search-tracks ()
   "Displays list of user-artists in helm buffer for interaction given helm-pattern."
   (interactive)
-  (spot4e-helm-tracks "search" '(tracks items) '(name) '(artists name) '(album name) (concat "&type=" "track")))
+  (spot4e-helm-tracks "search" (concat "&type=" "track")))
 
 
 (defun spot4e-helm-search-playlist-tracks (selection &optional goback-alist)
@@ -517,17 +554,18 @@ This interface can be returned to with a goback action in the
 subsequent helm-buffer, GOBACK-ALIST is the 'selection' from that
 buffer and is ignored."
   (interactive)
-  (spot4e-helm-tracks "playlist" '(tracks items) '(track name) '(track artists name) '(track album name) nil selection goback-alist))
+  (spot4e-helm-tracks "playlist" nil selection goback-alist))
   
 
 (defun spot4e-helm-search-user-tracks ()
-  "docs"
+  "Displays list of user tracks in helm buffer for interaction."
   (interactive)
-  (spot4e-helm-tracks "user" '(items) '(track name) '(track artists name) '(track album name) nil))
+  (spot4e-helm-tracks "user" nil))
 
 
 (defun spot4e-helm-search-recommendation-tracks (&optional type selection)
-  "Get recommendations based upon currently playing track or track selected (TRACK-ALIST) in spot4e-helm-search-tracks."
+  "Get recommendations based upon currently playing track or track selected (SELECTION) from any helm-tracks interface.
+type of track object is given by TYPE."
   (interactive)
   (let ((track-id (if selection
 		      (alist-get-chain
@@ -539,14 +577,14 @@ buffer and is ignored."
 		       selection)
 		    (alist-get-chain '(item id) (spot4e-get-currently-playing-context)))))
     (message track-id)
-    (spot4e-helm-tracks "rec" '(tracks) '(name) '(artists name) '(album name)
-			(concat "&seed_tracks=" track-id
-				"&access_token=" spot4e-access-token
-				"&limit=" "50"))))
+    (spot4e-helm-tracks "rec" (concat "&seed_tracks=" track-id
+				      "&access_token=" spot4e-access-token
+				      "&limit=" "50"))))
 
 
 (defun spot4e-play-track (type track)
-  "Play TRACK in context of the album the TRACK appears on."
+  "Play track, given by SELECTION, in context of the track
+appears on.  TYPE of track object given by TYPE."
   (let ((alist (spot4e-request "GET"
 			       (concat spot4e-tracks-url
 				       (alist-get-chain
@@ -573,7 +611,8 @@ buffer and is ignored."
 
 
 (defun spot4e-save (&optional type selection)
-  "Save currently playing track, or track represented by TRACK-ALIST."
+  "Save currently playing track, or track represented by
+SELECTION.  Type of track object given by TYPE"
   (interactive)
   (let ((track-id (if selection
 		      (alist-get-chain
@@ -587,7 +626,8 @@ buffer and is ignored."
     (spot4e-request "PUT"
 		    (concat spot4e-me-url "/tracks")
 		    (concat "?access_token=" spot4e-access-token
-			    "&ids=" track-id)))))
+			    "&ids=" track-id))))
+
 
 (provide 'spot4e)
 ;;; spot4e.el ends here
