@@ -43,7 +43,8 @@
 		     "user-read-playback-state "
 		     "user-library-modify "
 		     "user-library-read "
-		     "user-follow-read")
+		     "user-follow-read "
+		     "user-read-recently-played")
    "&show_dialog=" "true"))
 (defvar spot4e-token-url "https://accounts.spotify.com/api/token")
 (defvar spot4e-search-url "https://api.spotify.com/v1/search")
@@ -68,6 +69,7 @@
 (defvar spot4e-users-url "https://api.spotify.com/v1/users")
 (defvar spot4e-following-url "https://api.spotify.com/v1/me/following")
 (defvar spot4e-tracks-url "https://api.spotify.com/v1/tracks/")
+(setq spot4e-recently-played-url "https://api.spotify.com/v1/me/player/recently-played")
 
 
 (fset 'alist-get-chain 'alist-get)
@@ -312,26 +314,28 @@ ARTIST-ADDRESS, CONTEXT-ADDRESS."
 			      "/"
 			      "playlists"
 			      "/"
-			      (alist-get-chain '(id) selection))))))
+			      (alist-get-chain '(id) selection))))
+		   ((equal type "recent")
+		    spot4e-recently-played-url)))
 	(alist-address (cond ((or (equal type "search") (equal type "album") (equal type "playlist"))
 			      '(tracks items))
-			     ((equal type "user")
+			     ((or (equal type "user") (equal type "recent"))
 			      '(items))
 			     ((equal type "rec")
 			      '(tracks))))
 	(name-address (cond ((or (equal type "search") (equal type "rec") (equal type "album"))
 			     '(name))
-			    ((or (equal type "user") (equal type "playlist"))
+			    ((or (equal type "user") (equal type "playlist") (equal type "recent"))
 			     '(track name))))
 	(artist-address (cond ((or (equal type "search") (equal type "rec") (equal type "album"))
 			       '(artists name))
-			      ((or (equal type "user") (equal type "playlist"))
+			      ((or (equal type "user") (equal type "playlist") (equal type "recent"))
 			       '(track artists name))))
 	(context-address (cond ((or (equal type "search") (equal type "rec"))
 				'(album name))
 			       ((equal type "album")
 				nil)
-			       ((or (equal type "user") (equal type "playlist"))
+			       ((or (equal type "user") (equal type "playlist") (equal type "recent"))
 				'(track album name)))))
     (spot4e-helm "spot4e-track-candidates"
 		 url
@@ -561,6 +565,12 @@ buffer and is ignored."
   "Displays list of user tracks in helm buffer for interaction."
   (interactive)
   (spot4e-helm-tracks "user" nil))
+
+
+(defun spot4e-helm-search-recent-tracks ()
+  "Displays list of recently played tracks in helm buffer for interaction."
+  (interactive)
+  (spot4e-helm-tracks "recent" nil))
 
 
 (defun spot4e-helm-search-recommendation-tracks (&optional type selection)
