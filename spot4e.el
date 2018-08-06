@@ -32,6 +32,7 @@
   (base64-encode-string spot4e-id-secret t))
 (defvar spot4e-redirect-uri (url-hexify-string "https://spotify.com"))
 (defvar spot4e-auth-url-full
+  (url-encode-url
   (concat
    "https://accounts.spotify.com/en/authorize"
    "?response_type=code&client_id=" spot4e-client-id
@@ -45,7 +46,7 @@
 		     "user-library-read "
 		     "user-follow-read "
 		     "user-read-recently-played")
-   "&show_dialog=" "true"))
+   "&show_dialog=" "true")))
 (defvar spot4e-token-url "https://accounts.spotify.com/api/token")
 (defvar spot4e-search-url "https://api.spotify.com/v1/search")
 
