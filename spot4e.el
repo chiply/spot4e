@@ -639,7 +639,9 @@ SELECTION.  Type of track object given by TYPE"
     (spot4e-request "PUT"
 		    (concat spot4e-me-url "/tracks")
 		    (concat "?access_token=" spot4e-access-token
-			    "&ids=" track-id))))
+			    "&ids=" track-id)
+		    nil
+		    `(("Content-Length" . "0")))))
 
 
 (provide 'spot4e)
