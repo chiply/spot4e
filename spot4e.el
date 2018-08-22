@@ -44,6 +44,7 @@
 		     "user-library-modify "
 		     "user-library-read "
 		     "user-follow-read "
+		     "user-modify-playback-state "
 		     "user-read-recently-played")
    "&show_dialog=" "true"))
 (defvar spot4e-token-url "https://accounts.spotify.com/api/token")
