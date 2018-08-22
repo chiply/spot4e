@@ -173,7 +173,9 @@ alist of headers, and DATA is request body data as JSON."
   (interactive)
   (spot4e-request method
 		  (concat spot4e-player-url action)
-		  (concat  "?access_token=" spot4e-access-token))
+		  (concat  "?access_token=" spot4e-access-token)
+		  nil
+		  `(("Content-Length" . "0")))
   (spot4e-message-currently-playing))
 
 
