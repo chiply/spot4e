@@ -44,6 +44,7 @@
 		      "user-read-playback-state "
 		      "user-library-modify "
 		      "user-library-read "
+          "user-modify-playback-state "
 		      "user-follow-read "
 		      "user-read-recently-played")
     "&show_dialog=" "true")))
@@ -175,7 +176,9 @@ alist of headers, and DATA is request body data as JSON."
   (interactive)
   (spot4e-request method
 		  (concat spot4e-player-url action)
-		  (concat  "?access_token=" spot4e-access-token))
+		  (concat  "?access_token=" spot4e-access-token)
+		  nil
+		  `(("Content-Length" . "0")))
   (spot4e-message-currently-playing))
 
 
@@ -639,7 +642,9 @@ SELECTION.  Type of track object given by TYPE"
     (spot4e-request "PUT"
 		    (concat spot4e-me-url "/tracks")
 		    (concat "?access_token=" spot4e-access-token
-			    "&ids=" track-id))))
+			    "&ids=" track-id)
+		    nil
+		    `(("Content-Length" . "0")))))
 
 
 (provide 'spot4e)
