@@ -32,21 +32,22 @@
   (base64-encode-string spot4e-id-secret t))
 (defvar spot4e-redirect-uri (url-hexify-string "https://spotify.com"))
 (defvar spot4e-auth-url-full
-  (concat
-   "https://accounts.spotify.com/en/authorize"
-   "?response_type=code&client_id=" spot4e-client-id
-   "&redirect_uri=" spot4e-redirect-uri
-   "&scope=" (concat "streaming "
-		     "user-read-birthdate "
-		     "user-read-email "
-		     "user-read-private "
-		     "user-read-playback-state "
-		     "user-library-modify "
-		     "user-library-read "
-		     "user-follow-read "
-		     "user-modify-playback-state "
-		     "user-read-recently-played")
-   "&show_dialog=" "true"))
+  (url-encode-url
+   (concat
+    "https://accounts.spotify.com/en/authorize"
+    "?response_type=code&client_id=" spot4e-client-id
+    "&redirect_uri=" spot4e-redirect-uri
+    "&scope=" (concat "streaming "
+		      "user-read-birthdate "
+		      "user-read-email "
+		      "user-read-private "
+		      "user-read-playback-state "
+		      "user-library-modify "
+		      "user-library-read "
+          "user-modify-playback-state "
+		      "user-follow-read "
+		      "user-read-recently-played")
+    "&show_dialog=" "true")))
 (defvar spot4e-token-url "https://accounts.spotify.com/api/token")
 (defvar spot4e-search-url "https://api.spotify.com/v1/search")
 
@@ -109,6 +110,7 @@ alist of headers, and DATA is request body data as JSON."
 (defun spot4e-authorize ()
   "Obtain access_ and refresh_ tokens for user account."
   (interactive)
+  ;; Copy auth URL to kill ring (to respect terminal emacs users)
   (browse-url spot4e-auth-url-full)
   (setq spot4e-auth-code (read-string "Enter code from URL: "))
   (setq spot4e-tokens-alist
