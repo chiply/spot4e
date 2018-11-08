@@ -111,7 +111,6 @@ alist of headers, and DATA is request body data as JSON."
   "Obtain access_ and refresh_ tokens for user account."
   (interactive)
   ;; Copy auth URL to kill ring (to respect terminal emacs users)
-  (kill-new spot4e-auth-url-full)
   (browse-url spot4e-auth-url-full)
   (setq spot4e-auth-code (read-string "Enter code from URL: "))
   (setq spot4e-tokens-alist
