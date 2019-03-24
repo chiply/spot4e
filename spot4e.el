@@ -46,6 +46,8 @@
 		      "user-library-read "
           "user-modify-playback-state "
 		      "user-follow-read "
+              "playlist-modify-public "
+              "playlist-modify-private "
 		      "user-read-recently-played")
     "&show_dialog=" "true")))
 (defvar spot4e-token-url "https://accounts.spotify.com/api/token")
@@ -349,17 +351,24 @@ ARTIST-ADDRESS, CONTEXT-ADDRESS."
 		 (concat (concat "?access_token=" spot4e-access-token
 				 "&limit=" "50")
 			 extra-q-params)
-		 alist-address name-address artist-address context-address
-		 '(("Play Track" . (lambda (candidate)
-				     (spot4e-play-track type candidate)))
-		   ("Go Back" . (lambda (candidate)
-				  (spot4e-goback-from-tracks-fn goback-alist)))
-		   ("Get recommendations" . (lambda (candidate)
-					      (spot4e-helm-search-recommendation-tracks
-					       type
-					       candidate)))
-		   ("Save track" . (lambda (candidate)
-				     (spot4e-save type candidate)))))))
+         alist-address name-address artist-address context-address
+         '(("Play Track" . (lambda (candidate)
+                             (spot4e-play-track type candidate)))
+           ("Go Back" . (lambda (candidate)
+                          (spot4e-goback-from-tracks-fn goback-alist)))
+           ("Get recommendations" . (lambda (candidate)
+                                      (spot4e-helm-search-recommendation-tracks
+                                       type
+                                       candidate)))
+           ("Save track" . (lambda (candidate)
+                             (spot4e-save-default
+                              type
+                              candidate)))
+           ("Save track to playlist" . (lambda (candidate)
+                             (spot4e-save-to-playlist
+                              type
+                              candidate)))
+           ))))
 
 
 (defun spot4e-helm-albums (type extra-q-params &optional selection)
@@ -450,7 +459,7 @@ extract data via ALIST-ADDRESS."
 			       (equal type "feat"))
 			   '(playlists items)
 			 '(items))))
-    (spot4e-helm "spot4e-cetegory-playlist-candidates"
+    (spot4e-helm "spot4e-category-playlist-candidates"
 		 url
 		 nil
 		 (concat "?access_token=" spot4e-access-token
@@ -591,7 +600,6 @@ type of track object is given by TYPE."
 			 '(track id))
 		       selection)
 		    (alist-get-chain '(item id) (spot4e-get-currently-playing-context)))))
-    (message track-id)
     (spot4e-helm-tracks "rec" (concat "&seed_tracks=" track-id
 				      "&access_token=" spot4e-access-token
 				      "&limit=" "50"))))
@@ -625,7 +633,10 @@ appears on.  TYPE of track object given by TYPE."
   (spot4e-message-currently-playing))
 
 
-(defun spot4e-save (&optional type selection)
+;; make ine save function that can handle multiple destinations
+;; the default is the user saved tracks, but also add in playlist
+;; capabilities. 
+(defun spot4e-save (type destination selection)
   "Save currently playing track, or track represented by
 SELECTION.  Type of track object given by TYPE"
   (interactive)
@@ -637,14 +648,46 @@ SELECTION.  Type of track object given by TYPE"
 			   '(id)
 			 '(track id))
 		       selection)
-		    (alist-get-chain '(item id) (spot4e-get-currently-playing-context)))))
-    (spot4e-request "PUT"
-		    (concat spot4e-me-url "/tracks")
+		      (alist-get-chain '(item id) (spot4e-get-currently-playing-context))))
+        (url (if (equal destination "default")
+                (concat spot4e-me-url "/tracks")
+               (format "https://api.spotify.com/v1/playlists/%s/tracks" spot4e-selected-playlist)))
+        (put-or-post (if (equal type "default")
+                         (concat "PUT")
+                       (concat "POST"))))
+    (setq tracks (if (equal destination "default")
+                    (concat "&ids=" track-id)
+                   (concat "&uris=spotify:track:" track-id
+                           "&position=0")))
+    (spot4e-request put-or-post
+		    url
 		    (concat "?access_token=" spot4e-access-token
-			    "&ids=" track-id)
+			    tracks)
 		    nil
 		    `(("Content-Length" . "0")))))
+
+(defun spot4e-save-default (&optional type selection)
+  (interactive)
+  (spot4e-save type "default" selection))
+
+(defun spot4e-helm-select-playlist ()
+    "Allows user to specify playlist (for use in the spot4e-save-to-playlisit function)"
+    (spot4e-helm "spot4e-category-playlist-candidates"
+		 (concat spot4e-me-url "/" "playlists")
+		 nil
+		 (concat "?access_token=" spot4e-access-token
+			 "&limit=" "50")
+		 '(items) nil nil '(name)
+		 '(("Select playlist" . (lambda (candidate)
+                                  (setq spot4e-selected-playlist (alist-get 'id candidate)))))))
+
+(defun spot4e-save-to-playlist (&optional type selection)
+  (interactive)
+  (spot4e-helm-select-playlist)
+  (spot4e-save type "playlist" selection))
 
 
 (provide 'spot4e)
 ;;; spot4e.el ends here
+
+
