@@ -213,24 +213,24 @@ ITEM is the alist containing the data.  TRACK-ADDRESS, ARTIST-ADDRESS
 and CONTEXT-ADDRESS are the alist-get-chain arguments which point
 to the track, artist, and context, respctively"
   (let ((track-name (when track-address
-		      (alist-get-chain track-address item)))
-	(artist-name (when artist-address
-		       (alist-get-chain
-			(list (car (last artist-address)))
-			(elt (alist-get-chain
-			      (butlast artist-address) item)
-			     0))))
-	(context-name (when context-address
-			(alist-get-chain context-address item))))
+                      (alist-get-chain track-address item)))
+        (artist-name (when artist-address
+                       (alist-get-chain
+                        (list (car (last artist-address)))
+                        (elt (alist-get-chain
+                              (butlast artist-address) item)
+                             0))))
+        (context-name (when context-address
+                        (alist-get-chain context-address item))))
     (cond ((and track-name artist-name context-name)
-	   (concat track-name "\n"
-		   artist-name "  |||  " context-name))
-	  ((and artist-name context-name (eq track-name nil))
-	   (concat context-name " ||| " artist-name))
-	  ((and context-name (eq track-name nil) (eq artist-name nil))
-	   context-name)
-	  ((and track-name artist-name (eq context-name nil)
-		(concat track-name " ||| "artist-name))))))
+           (concat track-name "\n"
+                   artist-name "  |||  " context-name))
+          ((and artist-name context-name (eq track-name nil))
+           (concat context-name " ||| " artist-name))
+          ((and context-name (eq track-name nil) (eq artist-name nil))
+           context-name)
+	      ((and track-name artist-name (eq context-name nil)
+		        (concat track-name " ||| "artist-name))))))
 
 
 (defun spot4e-helm-candidates ()
@@ -492,6 +492,12 @@ extract data via ALIST-ADDRESS."
   (spot4e-helm-artists "search" (concat "&type=" "artist")))
 
 
+;;
+;; 
+
+
+
+
 (defun spot4e-helm-search-user-artists ()
   "Displays list of user-artists in helm buffer for interaction."
   (interactive)
@@ -587,22 +593,30 @@ buffer and is ignored."
   (spot4e-helm-tracks "recent" nil))
 
 
-(defun spot4e-helm-search-recommendation-tracks (&optional type selection)
+(defun spot4e-helm-search-recommendation-tracks (&optional type selection genre)
   "Get recommendations based upon currently playing track or track selected (SELECTION) from any helm-tracks interface.
 type of track object is given by TYPE."
   (interactive)
   (let ((track-id (if selection
-		      (alist-get-chain
-		       (if (or (equal type "search")
-			       (equal type "album")
-			       (equal type "rec"))
-			   '(id)
-			 '(track id))
-		       selection)
-		    (alist-get-chain '(item id) (spot4e-get-currently-playing-context)))))
-    (spot4e-helm-tracks "rec" (concat "&seed_tracks=" track-id
-				      "&access_token=" spot4e-access-token
-				      "&limit=" "50"))))
+                      (alist-get-chain
+                       (if (or (equal type "search")
+                               (equal type "album")
+                               (equal type "rec"))
+                           '(id)
+                         '(track id))
+                       selection)
+                    (alist-get-chain '(item id)
+                                     (spot4e-get-currently-playing-context)))))
+    
+    (setq seed (if genre
+                   (concat "&seed_genres="
+                           (spot4e-helm-select-genre)
+                           )
+                 (concat "&seed_tracks=" track-id)))
+    (message seed)
+    (spot4e-helm-tracks "rec" (concat seed
+                                      "&access_token=" spot4e-access-token
+                                      "&limit=" "50"))))
 
 
 (defun spot4e-play-track (type track)
@@ -687,7 +701,49 @@ SELECTION.  Type of track object given by TYPE"
   (spot4e-save type "playlist" selection))
 
 
+(defun spot4e-get-genres ()
+  (alist-get 'genres
+   (spot4e-request "GET"
+                   (concat spot4e-recommendations-url "/" "available-genre-seeds")
+                   (concat "?access_token=" spot4e-access-token)
+                   t
+                   `(("Content-Length" . "0"))
+                   )
+   )
+  )
+
+
+(defun spot4e-helm-select-genre ()
+  (interactive)
+  "Allows user to specify playlist (for use in the spot4e-save-to-playlisit function)"
+  (helm
+   :sources (helm-build-sync-source "genres"
+              :candidates
+              (append
+               (alist-get 'genres
+                          (spot4e-request "GET"
+                                          (concat spot4e-recommendations-url "/" "available-genre-seeds")
+                                          (concat "?access_token=" spot4e-access-token)
+                                          t
+                                          `(("Content-Length" . "0"))
+                                          )
+                          )
+               nil)
+              :action '(("Select Genre" . (lambda (candidate)
+                                          (setq spot4e-selected-genre candidate))))
+              :volatile t
+              :multiline t)
+   ))
+
+(defun spot4e-helm-search-recommendation-genres (&optional goback-alist)
+  (interactive)
+  "Get recommendations based upon selected artists"
+  (fset 'spot4e-goback-from-tracks-fn 'spot4e-helm-search-recommendation-genres)
+  (spot4e-helm-search-recommendation-tracks nil nil "t")
+  )
+
 (provide 'spot4e)
 ;;; spot4e.el ends here
 
 
+   
