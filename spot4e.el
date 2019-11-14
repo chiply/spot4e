@@ -123,6 +123,7 @@ alist of headers, and DATA is request body data as JSON."
 				"&code=" spot4e-auth-code)
 			t
 			`(("Content-Type" . "application/x-www-form-urlencoded")
+                          ("Content-Length" . "0")
 			  ("Authorization" . ,(concat "Basic " spot4e-b64-id-secret)))
 			nil))
   (setq spot4e-access-token
@@ -141,6 +142,7 @@ alist of headers, and DATA is request body data as JSON."
 				"&refresh_token=" spot4e-refresh-token)
 			t
 			`(("Content-Type" . "application/x-www-form-urlencoded")
+                          ("Content-Length" . "0")
 			  ("Authorization" . ,(concat "Basic " spot4e-b64-id-secret)))
 			nil))
   (setq spot4e-access-token
