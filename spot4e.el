@@ -38,17 +38,17 @@
     "?response_type=code&client_id=" spot4e-client-id
     "&redirect_uri=" spot4e-redirect-uri
     "&scope=" (concat "streaming "
-		      "user-read-birthdate "
-		      "user-read-email "
-		      "user-read-private "
-		      "user-read-playback-state "
-		      "user-library-modify "
-		      "user-library-read "
-          "user-modify-playback-state "
-		      "user-follow-read "
-              "playlist-modify-public "
-              "playlist-modify-private "
-		      "user-read-recently-played")
+                      "user-read-birthdate "
+                      "user-read-email "
+                      "user-read-private "
+                      "user-read-playback-state "
+                      "user-library-modify "
+                      "user-library-read "
+                      "user-modify-playback-state "
+                      "user-follow-read "
+                      "playlist-modify-public "
+                      "playlist-modify-private "
+                      "user-read-recently-played")
     "&show_dialog=" "true")))
 (defvar spot4e-token-url "https://accounts.spotify.com/api/token")
 (defvar spot4e-search-url "https://api.spotify.com/v1/search")
@@ -81,7 +81,7 @@
   "Look up the value for the chain of SYMBOLS in ALIST."
   (if symbols
       (alist-get-chain (cdr symbols)
-		       (assoc (car symbols) alist))
+                       (assoc (car symbols) alist))
     (cdr alist)))
 
 
@@ -90,7 +90,7 @@
   (with-current-buffer (url-retrieve-synchronously url)
     (json-read-from-string
      (decode-coding-region (+ 1 url-http-end-of-headers)
-			   (point-max) 'utf-8 t))))
+                           (point-max) 'utf-8 t))))
 
 
 (defun spot4e-request (method url &optional q-params parse-json extra-headers data)
@@ -100,11 +100,11 @@ query parameters, PARSE-JSON is a boolean for whether to parse
 and return the json response as an alist, EXTRA-HEADERS is an
 alist of headers, and DATA is request body data as JSON."
   (let ((url-request-method method)
-	(url-request-data data)
-	(url-request-extra-headers extra-headers))
+        (url-request-data data)
+        (url-request-extra-headers extra-headers))
     (if parse-json
-	(spot4e-retrieve-url-to-alist-synchronously
-	 (concat url q-params))
+        (spot4e-retrieve-url-to-alist-synchronously
+         (concat url q-params))
       (url-retrieve-synchronously
        (concat url q-params)))))
 
@@ -116,54 +116,54 @@ alist of headers, and DATA is request body data as JSON."
   (browse-url spot4e-auth-url-full)
   (setq spot4e-auth-code (read-string "Enter code from URL: "))
   (setq spot4e-tokens-alist
-	(spot4e-request "POST"
-			spot4e-token-url
-			(concat "?grant_type=" "authorization_code"
-				"&redirect_uri=" spot4e-redirect-uri
-				"&code=" spot4e-auth-code)
-			t
-			`(("Content-Type" . "application/x-www-form-urlencoded")
+        (spot4e-request "POST"
+                        spot4e-token-url
+                        (concat "?grant_type=" "authorization_code"
+                                "&redirect_uri=" spot4e-redirect-uri
+                                "&code=" spot4e-auth-code)
+                        t
+                        `(("Content-Type" . "application/x-www-form-urlencoded")
                           ("Content-Length" . "0")
-			  ("Authorization" . ,(concat "Basic " spot4e-b64-id-secret)))
-			nil))
+                          ("Authorization" . ,(concat "Basic " spot4e-b64-id-secret)))
+                        nil))
   (setq spot4e-access-token
-	(alist-get-chain '(access_token) spot4e-tokens-alist))
+        (alist-get-chain '(access_token) spot4e-tokens-alist))
   (setq spot4e-refresh-token
-	(alist-get-chain '(refresh_token) spot4e-tokens-alist)))
+        (alist-get-chain '(refresh_token) spot4e-tokens-alist)))
 
 
 (defun spot4e-refresh ()
   "Obtain access_ and refresh_ tokens for user account."
   (interactive)
   (setq spot4e-refresh-alist
-	(spot4e-request "POST"
-			spot4e-token-url
-			(concat "?grant_type=" "refresh_token"
-				"&refresh_token=" spot4e-refresh-token)
-			t
-			`(("Content-Type" . "application/x-www-form-urlencoded")
+        (spot4e-request "POST"
+                        spot4e-token-url
+                        (concat "?grant_type=" "refresh_token"
+                                "&refresh_token=" spot4e-refresh-token)
+                        t
+                        `(("Content-Type" . "application/x-www-form-urlencoded")
                           ("Content-Length" . "0")
-			  ("Authorization" . ,(concat "Basic " spot4e-b64-id-secret)))
-			nil))
+                          ("Authorization" . ,(concat "Basic " spot4e-b64-id-secret)))
+                        nil))
   (setq spot4e-access-token
-	(alist-get-chain '(access_token) spot4e-refresh-alist)))
+        (alist-get-chain '(access_token) spot4e-refresh-alist)))
 
 
 (defun spot4e-get-currently-playing-context ()
   "Return json results from track search with q=Q."
   (setq spot4e-currently-playing-context-alist
-	(spot4e-request "GET"
-			spot4e-currently-playing-url
-			(concat  "?access_token=" spot4e-access-token)
-			t)))
+        (spot4e-request "GET"
+                        spot4e-currently-playing-url
+                        (concat  "?access_token=" spot4e-access-token)
+                        t)))
 
 
 (defun spot4e-set-currently-playing ()
   "Set track, artist, album name for current track and store in spot4e-currently-playing."
   (interactive)
   (setq spot4e-currently-playing
-	(spot4e-format-track-for-mini-buffer-display
-	 (alist-get-chain '(item) (spot4e-get-currently-playing-context)))))
+        (spot4e-format-track-for-mini-buffer-display
+         (alist-get-chain '(item) (spot4e-get-currently-playing-context)))))
 
 
 (defun spot4e-message-currently-playing ()
@@ -178,10 +178,10 @@ alist of headers, and DATA is request body data as JSON."
   "Via the METHOD spoecified, send ACTION to player endpoint."
   (interactive)
   (spot4e-request method
-		  (concat spot4e-player-url action)
-		  (concat  "?access_token=" spot4e-access-token)
-		  nil
-		  `(("Content-Length" . "0")))
+                  (concat spot4e-player-url action)
+                  (concat  "?access_token=" spot4e-access-token)
+                  nil
+                  `(("Content-Length" . "0")))
   (spot4e-message-currently-playing))
 
 
@@ -231,34 +231,34 @@ to the track, artist, and context, respctively"
            (concat context-name " ||| " artist-name))
           ((and context-name (eq track-name nil) (eq artist-name nil))
            context-name)
-	      ((and track-name artist-name (eq context-name nil)
-		        (concat track-name " ||| "artist-name))))))
+          ((and track-name artist-name (eq context-name nil)
+                (concat track-name " ||| "artist-name))))))
 
 
 (defun spot4e-helm-candidates ()
   "Return name of the candidate (car) with candidate metadata (cdr)."
   (mapcar (lambda (candidate) (cons
-			       (spot4e-helm-formatter candidate
-						      spot4e-track-address
-						      spot4e-artist-address
-						      spot4e-context-address)
-			       candidate))
-	  (alist-get-chain spot4e-alist-address
-			   (if (eq spot4e-dynamic-helm t)
-			       (spot4e-request "GET" spot4e-url
-					       (concat spot4e-q-params "&q=" helm-pattern) t)
-			     (spot4e-request "GET" spot4e-url spot4e-q-params t)))))
+                               (spot4e-helm-formatter candidate
+                                                      spot4e-track-address
+                                                      spot4e-artist-address
+                                                      spot4e-context-address)
+                               candidate))
+          (alist-get-chain spot4e-alist-address
+                           (if (eq spot4e-dynamic-helm t)
+                               (spot4e-request "GET" spot4e-url
+                                               (concat spot4e-q-params "&q=" helm-pattern) t)
+                             (spot4e-request "GET" spot4e-url spot4e-q-params t)))))
 
 
 (defun spot4e-helm (helm-source-name
-		    url
-		    dynamic-helm
-		    q-params
-		    alist-address
-		    track-address
-		    artist-address
-		    context-address
-		    helm-actions)
+                    url
+                    dynamic-helm
+                    q-params
+                    alist-address
+                    track-address
+                    artist-address
+                    context-address
+                    helm-actions)
   "Create helm buffer given args.
 HELM-SOURCE-NAME will be the name of the helm-source.  URL is the
 url to the spotify api enpoint DYNAMIC-HELM specifies whether the
@@ -279,19 +279,19 @@ an alist representing the actions on a candidate."
   (setq spot4e-context-address context-address)
   (helm
    :sources (helm-build-sync-source helm-source-name
-	      :candidates 'spot4e-helm-candidates
-	      :action helm-actions
-	      :volatile t
-	      :multiline t)))
+              :candidates 'spot4e-helm-candidates
+              :action helm-actions
+              :volatile t
+              :multiline t)))
 
 
 (defun spot4e-format-track-for-mini-buffer-display (item)
   "Formats ITEM for display in mini buffer."
   (let ((track-name (alist-get-chain '(name) item))
-	(artist-name (alist-get-chain '(name) (elt (alist-get-chain '(artists) item) 0)))
-	(album-name (alist-get-chain '(album name) item)))
+        (artist-name (alist-get-chain '(name) (elt (alist-get-chain '(artists) item) 0)))
+        (album-name (alist-get-chain '(album name) item)))
     (concat track-name " --- "
-	    artist-name "  |||  " album-name)))
+            artist-name "  |||  " album-name)))
 
 
 (defun spot4e-helm-tracks (type extra-q-params &optional selection goback-alist)
@@ -304,73 +304,73 @@ selection (from precvious helm buffer) from which to extract
 alist, name, artist, and context via ALIST-ADDRESS, NAME-ADDRESS,
 ARTIST-ADDRESS, CONTEXT-ADDRESS."
   (let ((url (cond ((equal type "search")
-		    spot4e-search-url)
-		   ((equal type "album")
-		    (concat spot4e-albums-url
-			    "/"
-			    (alist-get-chain '(id) selection)))
-		   ((equal type "user")
-		    (concat spot4e-me-url "/tracks"))
-		   ((equal type "rec")
-		    spot4e-recommendations-url)
-		   ((equal type "playlist")
-		    (progn
-		      (setq spot4e-playlist-uri
-			    (alist-get-chain '(uri) selection))
-		      (concat "https://api.spotify.com/v1/users"
-			      "/"
-			      (alist-get-chain '(owner id) selection)
-			      "/"
-			      "playlists"
-			      "/"
-			      (alist-get-chain '(id) selection))))
-		   ((equal type "recent")
-		    spot4e-recently-played-url)))
-	(alist-address (cond ((or (equal type "search") (equal type "album") (equal type "playlist"))
-			      '(tracks items))
-			     ((or (equal type "user") (equal type "recent"))
-			      '(items))
-			     ((equal type "rec")
-			      '(tracks))))
-	(name-address (cond ((or (equal type "search") (equal type "rec") (equal type "album"))
-			     '(name))
-			    ((or (equal type "user") (equal type "playlist") (equal type "recent"))
-			     '(track name))))
-	(artist-address (cond ((or (equal type "search") (equal type "rec") (equal type "album"))
-			       '(artists name))
-			      ((or (equal type "user") (equal type "playlist") (equal type "recent"))
-			       '(track artists name))))
-	(context-address (cond ((or (equal type "search") (equal type "rec"))
-				'(album name))
-			       ((equal type "album")
-				nil)
-			       ((or (equal type "user") (equal type "playlist") (equal type "recent"))
-				'(track album name)))))
+                    spot4e-search-url)
+                   ((equal type "album")
+                    (concat spot4e-albums-url
+                            "/"
+                            (alist-get-chain '(id) selection)))
+                   ((equal type "user")
+                    (concat spot4e-me-url "/tracks"))
+                   ((equal type "rec")
+                    spot4e-recommendations-url)
+                   ((equal type "playlist")
+                    (progn
+                      (setq spot4e-playlist-uri
+                            (alist-get-chain '(uri) selection))
+                      (concat "https://api.spotify.com/v1/users"
+                              "/"
+                              (alist-get-chain '(owner id) selection)
+                              "/"
+                              "playlists"
+                              "/"
+                              (alist-get-chain '(id) selection))))
+                   ((equal type "recent")
+                    spot4e-recently-played-url)))
+        (alist-address (cond ((or (equal type "search") (equal type "album") (equal type "playlist"))
+                              '(tracks items))
+                             ((or (equal type "user") (equal type "recent"))
+                              '(items))
+                             ((equal type "rec")
+                              '(tracks))))
+        (name-address (cond ((or (equal type "search") (equal type "rec") (equal type "album"))
+                             '(name))
+                            ((or (equal type "user") (equal type "playlist") (equal type "recent"))
+                             '(track name))))
+        (artist-address (cond ((or (equal type "search") (equal type "rec") (equal type "album"))
+                               '(artists name))
+                              ((or (equal type "user") (equal type "playlist") (equal type "recent"))
+                               '(track artists name))))
+        (context-address (cond ((or (equal type "search") (equal type "rec"))
+                                '(album name))
+                               ((equal type "album")
+                                nil)
+                               ((or (equal type "user") (equal type "playlist") (equal type "recent"))
+                                '(track album name)))))
     (spot4e-helm "spot4e-track-candidates"
-		 url
-		 (when (equal type "search")
-		   t)
-		 (concat (concat "?access_token=" spot4e-access-token
-				 "&limit=" "50")
-			 extra-q-params)
-         alist-address name-address artist-address context-address
-         '(("Play Track" . (lambda (candidate)
-                             (spot4e-play-track type candidate)))
-           ("Go Back" . (lambda (candidate)
-                          (spot4e-goback-from-tracks-fn goback-alist)))
-           ("Get recommendations" . (lambda (candidate)
-                                      (spot4e-helm-search-recommendation-tracks
-                                       type
-                                       candidate)))
-           ("Save track" . (lambda (candidate)
-                             (spot4e-save-default
-                              type
-                              candidate)))
-           ("Save track to playlist" . (lambda (candidate)
-                             (spot4e-save-to-playlist
-                              type
-                              candidate)))
-           ))))
+                 url
+                 (when (equal type "search")
+                   t)
+                 (concat (concat "?access_token=" spot4e-access-token
+                                 "&limit=" "50")
+                         extra-q-params)
+                 alist-address name-address artist-address context-address
+                 '(("Play Track" . (lambda (candidate)
+                                     (spot4e-play-track type candidate)))
+                   ("Go Back" . (lambda (candidate)
+                                  (spot4e-goback-from-tracks-fn goback-alist)))
+                   ("Get recommendations" . (lambda (candidate)
+                                              (spot4e-helm-search-recommendation-tracks
+                                               type
+                                               candidate)))
+                   ("Save track" . (lambda (candidate)
+                                     (spot4e-save-default
+                                      type
+                                      candidate)))
+                   ("Save track to playlist" . (lambda (candidate)
+                                                 (spot4e-save-to-playlist
+                                                  type
+                                                  candidate)))
+                   ))))
 
 
 (defun spot4e-helm-albums (type extra-q-params &optional selection)
@@ -382,36 +382,36 @@ addresses for getting the data out.  SELECTION is an alist
 selection (from precvious helm buffer) from which to extract
 data via ALIST-ADDRESS."
   (let ((url (cond ((equal type "search")
-		    spot4e-search-url)
-		   ((equal type "artist")
-		    (concat spot4e-artist-url
-			    "/"
-			    (alist-get-chain '(id) selection)
-			    "/"
-			    "albums"))
-		   ((equal type "new")
-		    spot4e-new-releases-url)))
-	(alist-address (if (or (equal type "search")
-			       (equal type "new"))
-			   '(albums items)
-			 '(items))))
+                    spot4e-search-url)
+                   ((equal type "artist")
+                    (concat spot4e-artist-url
+                            "/"
+                            (alist-get-chain '(id) selection)
+                            "/"
+                            "albums"))
+                   ((equal type "new")
+                    spot4e-new-releases-url)))
+        (alist-address (if (or (equal type "search")
+                               (equal type "new"))
+                           '(albums items)
+                         '(items))))
     (spot4e-helm "spot4e-album-candidates"
-		 url
-		 (when (equal type "search")
-		   t)
-		 (concat (concat "?access_token=" spot4e-access-token
-				 "&limit=" "50")
-			 extra-q-params)
-		 alist-address nil '(artists name) '(name)
-		 '(("Display Album Tracks" . (lambda (candidate) (spot4e-helm-search-album-tracks
-							     candidate
-							     selection)))
-		   ("Go Back" . (lambda (candidate)
-				  (spot4e-goback-from-albums-fn)))))))
+                 url
+                 (when (equal type "search")
+                   t)
+                 (concat (concat "?access_token=" spot4e-access-token
+                                 "&limit=" "50")
+                         extra-q-params)
+                 alist-address nil '(artists name) '(name)
+                 '(("Display Album Tracks" . (lambda (candidate) (spot4e-helm-search-album-tracks
+                                                                  candidate
+                                                                  selection)))
+                   ("Go Back" . (lambda (candidate)
+                                  (spot4e-goback-from-albums-fn)))))))
 
 
 (defun spot4e-helm-artists (type extra-q-params)
-    "Displays list of artists in helm-buffer for interaction.
+  "Displays list of artists in helm-buffer for interaction.
 TYPE indicates the type of artists, i.e. user, search
 etc... You can pass EXTRA-Q-PARAMS to the query if necessary.
 This is relevant because each type has a different set of
@@ -419,24 +419,24 @@ addresses for getting the data out.  SELECTION is an alist
 selection (from precvious helm buffer) from which to extract
 data."
   (let ((url (cond ((equal type "search")
-		    spot4e-search-url)
-		   ((equal type "user")
-		    spot4e-following-url))))
+                    spot4e-search-url)
+                   ((equal type "user")
+                    spot4e-following-url))))
     (spot4e-helm "spot4e-artist-candidates"
-		 url
-		 (when (equal type "search")
-		   t)
-		 (concat (concat "?access_token=" spot4e-access-token
-				 "&limit=" "50")
-			 extra-q-params)
-		 '(artists items) nil nil '(name)
-		 '(("Display Album Tracks" . (lambda (candidate)
-					       (spot4e-helm-search-artist-albums
-						candidate)))))))
+                 url
+                 (when (equal type "search")
+                   t)
+                 (concat (concat "?access_token=" spot4e-access-token
+                                 "&limit=" "50")
+                         extra-q-params)
+                 '(artists items) nil nil '(name)
+                 '(("Display Album Tracks" . (lambda (candidate)
+                                               (spot4e-helm-search-artist-albums
+                                                candidate)))))))
 
 
 (defun spot4e-helm-playlists (type &optional selection)
-    "Displays list of playlists in helm-buffer for interaction.
+  "Displays list of playlists in helm-buffer for interaction.
 TYPE indicates the type of playlists, i.e. featured, user,
 category etc...  This is relevant because each type has a
 different set of addresses for getting the data out.  SELECTION
@@ -444,47 +444,47 @@ is an alist selection (from precvious helm buffer) from which to
 extract data via ALIST-ADDRESS."
   (interactive)
   (let ((url (cond ((equal type "cat")
-		    (concat spot4e-categories-url
-			    "/"
-			    (alist-get-chain '(id) selection)
-			    "/"
-			    "playlists"))
-		   ((equal type "feat")
-		    (concat spot4e-browse-url
-			    "/"
-			    "featured-playlists"))
-		   ((equal type "user")
-		    (concat spot4e-me-url
-			    "/"
-			    "playlists"))))
-	(alist-address (if (or (equal type "cat")
-			       (equal type "feat"))
-			   '(playlists items)
-			 '(items))))
+                    (concat spot4e-categories-url
+                            "/"
+                            (alist-get-chain '(id) selection)
+                            "/"
+                            "playlists"))
+                   ((equal type "feat")
+                    (concat spot4e-browse-url
+                            "/"
+                            "featured-playlists"))
+                   ((equal type "user")
+                    (concat spot4e-me-url
+                            "/"
+                            "playlists"))))
+        (alist-address (if (or (equal type "cat")
+                               (equal type "feat"))
+                           '(playlists items)
+                         '(items))))
     (spot4e-helm "spot4e-category-playlist-candidates"
-		 url
-		 nil
-		 (concat "?access_token=" spot4e-access-token
-			 "&limit=" "50")
-		 alist-address nil nil '(name)
-		 '(("Display Playlist Tracks" . (lambda (candidate)
-						  (spot4e-helm-search-playlist-tracks
-						   candidate
-						   selection)))
-		   ("Go Back" . (lambda (candidate)
-				  (spot4e-helm-search-categories)))))))
+                 url
+                 nil
+                 (concat "?access_token=" spot4e-access-token
+                         "&limit=" "50")
+                 alist-address nil nil '(name)
+                 '(("Display Playlist Tracks" . (lambda (candidate)
+                                                  (spot4e-helm-search-playlist-tracks
+                                                   candidate
+                                                   selection)))
+                   ("Go Back" . (lambda (candidate)
+                                  (spot4e-helm-search-categories)))))))
 
 
 (defun spot4e-helm-search-categories ()
   "Display list of spotify categories in helm buffer for interaction."
   (interactive)
   (spot4e-helm "spot4e-categories-candidates"
-	       spot4e-categories-url
-	       nil
-	       (concat  "?access_token=" spot4e-access-token)
-	       '(categories items) nil nil '(name)
-	       '(("Display Category Playlists" . (lambda (candidate)
-						   (spot4e-helm-search-category-playlists candidate))))))
+               spot4e-categories-url
+               nil
+               (concat  "?access_token=" spot4e-access-token)
+               '(categories items) nil nil '(name)
+               '(("Display Category Playlists" . (lambda (candidate)
+                                                   (spot4e-helm-search-category-playlists candidate))))))
 
 
 (defun spot4e-helm-search-artists ()
@@ -581,7 +581,7 @@ subsequent helm-buffer, GOBACK-ALIST is the 'selection' from that
 buffer and is ignored."
   (interactive)
   (spot4e-helm-tracks "playlist" nil selection goback-alist))
-  
+
 
 (defun spot4e-helm-search-user-tracks ()
   "Displays list of user tracks in helm buffer for interaction."
@@ -625,27 +625,27 @@ type of track object is given by TYPE."
   "Play track, given by SELECTION, in context of the track
 appears on.  TYPE of track object given by TYPE."
   (let ((alist (spot4e-request "GET"
-			       (concat spot4e-tracks-url
-				       (alist-get-chain
-					(if (or (equal type "search")
-						(equal type "album")
-						(equal type "rec"))
-					    '(id)
-					  '(track id))
-					track))
-			       (concat "?access_token="
-				       spot4e-access-token)
-			       t)))
+                               (concat spot4e-tracks-url
+                                       (alist-get-chain
+                                        (if (or (equal type "search")
+                                                (equal type "album")
+                                                (equal type "rec"))
+                                            '(id)
+                                          '(track id))
+                                        track))
+                               (concat "?access_token="
+                                       spot4e-access-token)
+                               t)))
     (spot4e-request "PUT"
-		    spot4e-player-play-url
-		    (concat "?access_token=" spot4e-access-token)
-		    nil
-		    nil
-		    (format "{\"context_uri\":\"%s\", \"offset\":{\"uri\":\"%s\"}}"
-			    (if (equal type "playlist")
-				spot4e-playlist-uri
-			      (alist-get-chain '(album uri) alist))
-			    (alist-get-chain '(uri) alist))))
+                    spot4e-player-play-url
+                    (concat "?access_token=" spot4e-access-token)
+                    nil
+                    nil
+                    (format "{\"context_uri\":\"%s\", \"offset\":{\"uri\":\"%s\"}}"
+                            (if (equal type "playlist")
+                                spot4e-playlist-uri
+                              (alist-get-chain '(album uri) alist))
+                            (alist-get-chain '(uri) alist))))
   (spot4e-message-currently-playing))
 
 
@@ -657,45 +657,45 @@ appears on.  TYPE of track object given by TYPE."
 SELECTION.  Type of track object given by TYPE"
   (interactive)
   (let ((track-id (if selection
-		      (alist-get-chain
-		       (if (or (equal type "search")
-			       (equal type "album")
-			       (equal type "rec"))
-			   '(id)
-			 '(track id))
-		       selection)
-		      (alist-get-chain '(item id) (spot4e-get-currently-playing-context))))
+                      (alist-get-chain
+                       (if (or (equal type "search")
+                               (equal type "album")
+                               (equal type "rec"))
+                           '(id)
+                         '(track id))
+                       selection)
+                    (alist-get-chain '(item id) (spot4e-get-currently-playing-context))))
         (url (if (equal destination "default")
-                (concat spot4e-me-url "/tracks")
+                 (concat spot4e-me-url "/tracks")
                (format "https://api.spotify.com/v1/playlists/%s/tracks" spot4e-selected-playlist)))
         (put-or-post (if (equal type "default")
                          (concat "PUT")
                        (concat "POST"))))
     (setq tracks (if (equal destination "default")
-                    (concat "&ids=" track-id)
+                     (concat "&ids=" track-id)
                    (concat "&uris=spotify:track:" track-id
                            "&position=0")))
     (spot4e-request put-or-post
-		    url
-		    (concat "?access_token=" spot4e-access-token
-			    tracks)
-		    nil
-		    `(("Content-Length" . "0")))))
+                    url
+                    (concat "?access_token=" spot4e-access-token
+                            tracks)
+                    nil
+                    `(("Content-Length" . "0")))))
 
 (defun spot4e-save-default (&optional type selection)
   (interactive)
   (spot4e-save type "default" selection))
 
 (defun spot4e-helm-select-playlist ()
-    "Allows user to specify playlist (for use in the spot4e-save-to-playlisit function)"
-    (spot4e-helm "spot4e-category-playlist-candidates"
-		 (concat spot4e-me-url "/" "playlists")
-		 nil
-		 (concat "?access_token=" spot4e-access-token
-			 "&limit=" "50")
-		 '(items) nil nil '(name)
-		 '(("Select playlist" . (lambda (candidate)
-                                  (setq spot4e-selected-playlist (alist-get 'id candidate)))))))
+  "Allows user to specify playlist (for use in the spot4e-save-to-playlisit function)"
+  (spot4e-helm "spot4e-category-playlist-candidates"
+               (concat spot4e-me-url "/" "playlists")
+               nil
+               (concat "?access_token=" spot4e-access-token
+                       "&limit=" "50")
+               '(items) nil nil '(name)
+               '(("Select playlist" . (lambda (candidate)
+                                        (setq spot4e-selected-playlist (alist-get 'id candidate)))))))
 
 (defun spot4e-save-to-playlist (&optional type selection)
   (interactive)
@@ -705,13 +705,13 @@ SELECTION.  Type of track object given by TYPE"
 
 (defun spot4e-get-genres ()
   (alist-get 'genres
-   (spot4e-request "GET"
-                   (concat spot4e-recommendations-url "/" "available-genre-seeds")
-                   (concat "?access_token=" spot4e-access-token)
-                   t
-                   `(("Content-Length" . "0"))
-                   )
-   )
+             (spot4e-request "GET"
+                             (concat spot4e-recommendations-url "/" "available-genre-seeds")
+                             (concat "?access_token=" spot4e-access-token)
+                             t
+                             `(("Content-Length" . "0"))
+                             )
+             )
   )
 
 
@@ -732,7 +732,7 @@ SELECTION.  Type of track object given by TYPE"
                           )
                nil)
               :action '(("Select Genre" . (lambda (candidate)
-                                          (setq spot4e-selected-genre candidate))))
+                                            (setq spot4e-selected-genre candidate))))
               :volatile t
               :multiline t)
    ))
@@ -748,4 +748,4 @@ SELECTION.  Type of track object given by TYPE"
 ;;; spot4e.el ends here
 
 
-   
+
